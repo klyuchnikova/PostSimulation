@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robots>
+  <robot>
+    <direction>1</direction>
+    <robot_id>rob_0</robot_id>
+    <x>68</x>
+    <y>108</y>
+  </robot>
+  <robot>
+    <direction>1</direction>
+    <robot_id>rob_1</robot_id>
+    <x>84</x>
+    <y>125</y>
+  </robot>
+  <robot>
+    <direction>0</direction>
+    <robot_id>rob_2</robot_id>
+    <x>68</x>
+    <y>103</y>
+  </robot>
+  <robot>
+    <direction>0</direction>
+    <robot_id>rob_3</robot_id>
+    <x>101</x>
+    <y>102</y>
+  </robot>
+  <robot>
+    <direction>0</direction>
+    <robot_id>rob_4</robot_id>
+    <x>83</x>
+    <y>113</y>
+  </robot>
+</robots>

@@ -1,0 +1,26 @@
+{
+    "sim": {
+        "NAME": "sim_v0",
+        "START_TIME": null,
+        "END_TIME": null,
+        "ONE_TICK": 60,
+        "MAP_CONFIG_PATH": "map_v0.xml",
+        "ROBOT_CONFIG_PATH": "robots_v0.xml",
+        "QUEUE_CONFIG_PATH": "queue_v0.xml",
+        "WMS_CONTROLLER_TYPE": "DEFINE",
+        "WMS_CONTROLLER_PORT": null,
+        "DWS_CONTROLLER_TYPE": "FROM_FILE",
+        "DWS_CONTROLLER_PORT": null,
+        "DWS_CONFIG_PATH": "dws_conf"
+    },
+    "robot": {
+        "TAKING_PACKAGE_TIMEOUT": 120,
+        "MOVING_ONE_TILE_TIMEOUT": 60,
+        "TURNING_ONE_TIMEOUT": 60,
+        "SENDING_PACKAGE_TIMEOUT": 120
+    },
+    "logger": {
+        "LOGGER_OUT_PATH": "sim_v0",
+        "IS_LOGGING": false
+    }
+}
