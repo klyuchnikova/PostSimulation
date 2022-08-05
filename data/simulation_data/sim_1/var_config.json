@@ -1,0 +1,21 @@
+{
+    "sim": {
+        "START_TIME": "2022-07-31T19:22:22.281393",
+        "END_TIME": "2022-08-30T19:22:22.281393",
+        "ONE_TICK": 60,
+        "WMS_CONTROLLER_TYPE": "DEFINE",
+        "WMS_CONTROLLER_PORT": null,
+        "DWS_CONTROLLER_TYPE": "FROM_FILE",
+        "DWS_CONTROLLER_PORT": null
+    },
+    "robot": {
+        "TAKING_PACKAGE_TIMEOUT": 120,
+        "MOVING_ONE_TILE_TIMEOUT": 60,
+        "TURNING_ONE_TIMEOUT": 60,
+        "SENDING_PACKAGE_TIMEOUT": 120
+    },
+    "logger": {
+        "LOGGER_OUT_PATH": "sim_v0",
+        "IS_LOGGING": false
+    }
+}
