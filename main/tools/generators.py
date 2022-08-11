@@ -23,6 +23,10 @@ def save_queue_config(fpath, data):
     with open(fpath, 'w') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n' + dict2xml({"queue" : data}, wrap = "queues"))  
 
+def save_map_log_configuration(fpath, data):
+    with open(fpath, 'w') as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n' + dict2xml(data, wrap = "obs"))    
+
 def generate_env_config_file(fpath, sim, Robot):
     vars_d = {"sim" : ["NAME", "START_TIME", "END_TIME", "ONE_TICK", "WMS_CONTROLLER_TYPE", "WMS_SERVER_PORT", "DWS_CONTROLLER_TYPE", "DWS_SERVER_PORT", "MAP_CONFIG_PATH", "ROBOT_CONFIG_PATH", "QUEUE_CONFIG_PATH"],
               "robots" : ["TAKING_PACKAGE_TIMEOUT", "MOVING_ONE_TILE_TIMEOUT", "TURNING_ONE_TIMEOUT", "SENDING_PACKAGE_TIMEOUT"],

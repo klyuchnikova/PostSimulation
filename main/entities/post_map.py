@@ -34,7 +34,7 @@ class TileState(Enum):
     ENTRY_CELL = 23
     EXIT_CELL = 24
     ERROR = 25
-
+    
 TILE_TYPE_PICTURES = dict.fromkeys(np.arange(26), "ARROW_EXAMPLE.png")
 
 def get_available_direction_list(tile_type):
@@ -86,18 +86,21 @@ class Tile:
     def init_move_in(self, robot):
         print(f"robot {robot.robot_id} starts in ({self.x}, {self.y})")
         self.robot = robot
-        self.container.get(1)
+        self.container.put(1)
         
     def request_move_in(self, robot):
         if self.container:
-            yield self.container.get(1)
+            print("capacity & level: ", self.container.capacity, self.container.level)
+            yield self.container.put(1)
+            print("capacity & level: ", self.container.capacity, self.container.level)
+            
         else:
             raise Exception("tile not movable!")
         self.robot = robot
     
     def request_move_out(self, robot):
         print(f"robot {robot.robot_id} requests to move out of ({self.x}, {self.y})")
-        self.container.put(1)
+        yield self.container.get(1)
         self.robot = None
         
     def direction_available_(self, direction = 0):
@@ -297,7 +300,7 @@ class PostMap:
                     type_id = (self.tile_map[y][x].tile_class == TileClass.PATH_TILE)
                 print("%2d"%type_id, end = "  ")
             print()
-            
+                        
     def show_classes(self):
         classes = np.zeros_like(self.tile_type_map_)
         for x in range(self.tile_width):
@@ -327,8 +330,11 @@ class PostMap:
     def size(self):
         return self.tile_height * self.tile_width
         
+    def get_map_classes(self):
+        return list(map(lambda row: list(map(lambda tile: tile.tile_class, row)), self.tile_map))
+    
     def get_map_coloring_files(self):
-        return [[os.path.join(sys.path[0], TILE_TYPE_PICTURES[tile.tile_type._value_]) for tile in self.tile_map[i]] for i in range(len(self.tile_map))]
+        return [[os.path.join(os.path.normpath(r"E:\E\Copy\PyCharm\RoboPost\PostSimulationP\data\simulation_data\tile_type_pictures"), TILE_TYPE_PICTURES[tile.tile_type._value_]) for tile in self.tile_map[i]] for i in range(len(self.tile_map))]
 
 from main.tools.generators import save_robot_configuration, save_queue_config
 def generate_random_robot_config_on_free_tiles(map_path, save_path = "robot_v0.xml", number_robots = 5):

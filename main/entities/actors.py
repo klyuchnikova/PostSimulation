@@ -41,16 +41,16 @@ class Robot:
         self.charge = charge
         self.containing_package_id = None
         
-    def move_forward(self):
-        print(f"{self.env.now}: robot {self.robot_id} moving forward")
+    def move_forward(self, **kwargs):
+        print(f"{self.env.now}: robot {self.robot_id} moving forward ({Robot.MOVING_ONE_TILE_TIMEOUT})")
         next_tile = self.position.neighbours[self.direction]
         if next_tile is None:
             yield Exception(f"{self.robot_id} from position {self.position.tile_id} no tile in the facing direction {self.direction}")
             return False
         else:
-            yield next_tile.request_move_in(self)
+            yield self.env.process(next_tile.request_move_in(self))
             yield self.env.timeout(Robot.MOVING_ONE_TILE_TIMEOUT)
-            self.position.request_move_out(self)
+            yield self.env.process(self.position.request_move_out(self))
             self.position = next_tile            
             return True
                 
@@ -64,12 +64,13 @@ class Robot:
             self.direction = (self.direction - 1)%4
     
     def receive_package(self, package_id):
-        print(f"receive procedure speed")
+        print(f"{self.env.now}: receive package start ({Robot.TAKING_PACKAGE_TIMEOUT})")
         yield self.env.timeout(Robot.TAKING_PACKAGE_TIMEOUT)
         self.containing_package_id = package_id
         print(f"{self.env.now}: bot {self.robot_id} recieved {package_id}")
         
     def send_package(self, package_id):
+        print(f"{self.env.now}: send package start ({Robot.SENDING_PACKAGE_TIMEOUT})")
         yield self.env.timeout(Robot.SENDING_PACKAGE_TIMEOUT)
         self.containing_package_id = None
         print(f"{self.env.now}: bot {self.robot_id} sent {package_id}")
@@ -131,8 +132,10 @@ class WMS_communicator:
         robot_id = 'rob_0'
         cur_x, cur_y = self.map_controller.get_robot_coordinates_by_id(robot_id)
         rec_pkg = (1, (receiver_id, pkg_id))
+        move_1 = (0, (cur_x + 1, cur_y))
+        move_2 = (0, (cur_x, cur_y))
         del_pkg = (2, (receiver_id, pkg_id))
-        return {'robot_id' : robot_id, 'receiver_id' : None, 'command' : [rec_pkg, del_pkg]}
+        return {'robot_id' : robot_id, 'receiver_id' : None, 'command' : [rec_pkg,move_1, move_2, del_pkg]}
     def send_answer(self):
         pass
     def define_construct_path_(self):
