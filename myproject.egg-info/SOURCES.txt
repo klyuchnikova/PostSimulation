@@ -1,0 +1,12 @@
+setup.py
+main/__init__.py
+main/controllers/__init__.py
+main/entities/__init__.py
+main/entities/actors.py
+main/entities/post_map.py
+main/tools/__init__.py
+main/tools/xml_parser.py
+myproject.egg-info/PKG-INFO
+myproject.egg-info/SOURCES.txt
+myproject.egg-info/dependency_links.txt
+myproject.egg-info/top_level.txt

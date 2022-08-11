@@ -120,7 +120,7 @@ class RobotController:
         # input must be list of dicts like {"robot_id": "", "x" : int, "y" : int, "direction" : int}
         self.number_robots = len(start_config)
         self.robot_id2order = dict()
-        self.robot_order2id = np.array([""]*self.number_robots)
+        self.robot_order2id = [""]*self.number_robots
         self.robot_positions_ = [0]*self.number_robots
         self.robot_directions_ = np.array([0]*self.number_robots)
         self.robots_ = [0]*self.number_robots
@@ -135,7 +135,11 @@ class RobotController:
             self.robots_[i] = Robot(self.env, robot_conf["robot_id"], i, start_position_tile = self.map_.get(self.robot_positions_[i][0], self.robot_positions_[i][1]), start_direction = direction)
         self.robot_positions_ = np.array(self.robot_positions_)
         self.robots_ = np.array(self.robots_)
-        self.robot_responses = np.array([True]*len(self.robots_))
+        
+        self.robot_responses = np.array([False]*len(self.robots_)) # True when robot finished action
+        self.robot_command_awaiting = np.array([False]*len(self.robots_)) # True when there was a command sent to a robot not yet finished
+        self.update_robot_position = np.zeros((self.number_robots, 3)) # If there was a command sent to robot then here the updated position (x,y,d) is stored
+        
         self.pathes_ = [deque() for _ in range(self.number_robots)]
         self.current_commands_ = [None for _ in range(self.number_robots)]
         
@@ -169,10 +173,12 @@ class RobotController:
            
         self.number_robots = 0 
         self.robot_positions_ = np.array([]) # robot_o_id -> (x,y) # mostly for logs
+        self.robot_directions_ = np.zeros(self.number_robots)
         self.robots_ = np.array([]) # robot_o_id -> Robot
         self.pathes_ = [] # robot_o_id -> path where path is a dequeue
-        self.current_commands_ = np.array([]) # robot_o_id -> command on this tick (filtered from pathes with received answers)
-        self.robot_responses = np.array([]) # robot_o_id -> bool # has the response come?
+        self.current_commands_ = np.array([]) # robot_o_id -> command on this tick including those on which responses are awaited (filtered from pathes with received answers)
+        self.robot_responses = np.array([]) # robot_o_id -> bool # has the response come
+        self.robot_command_awaiting = np.array([]) # True when there was a command sent to a robot not yet finished
         
         self.crete_robots_(load_robot_configuration(self.init_file_path))
         
@@ -188,9 +194,10 @@ class RobotController:
             for y in range(self.map_.tile_height):
                 if self.map_.get(x,y).robot and self.map_.get(x,y).tile_class != TileClass.QUEUE_TILE:
                     self.occupation_map_[y, x] += 1
-    def update_occupation_map_and_positions(self):
+                    
+    def update_state_by_responses(self):
         for robot_o_id in range(self.number_robots):
-            if self.robot_responses[robot_o_id] and self.current_commands_[robot_o_id]:
+            if self.robot_responses[robot_o_id]: # if the action was just finished on this tick
                 if self.current_commands_[robot_o_id][0] == "move_forward":
                     d = self.robot_directions_[robot_o_id]
                     if self.map_.get(*self.robot_positions_[robot_o_id]).tile_class != TileClass.QUEUE_TILE:
@@ -198,9 +205,12 @@ class RobotController:
                     self.robot_positions_[robot_o_id] = (self.robot_positions_[robot_o_id][0] - (d%2)*(d - 2), self.robot_positions_[robot_o_id][1] + ((d+1)%2)*(d-1))
                     #self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] +=1
                 elif self.current_commands_[robot_o_id][0] == "turn":
-                    self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + self.current_commands_[robot_o_id][1])%4
-    def update_occupation_map(self):
-        pass
+                    self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + self.current_commands_[robot_o_id][1]["right"])%4
+                self.current_commands_[robot_o_id] = None
+                    
+    def get_robots_filling(self):
+        # returns boolean vector of size robot_number, true means the robot has a package, false - it doesn't
+        return list(map(lambda robot: (robot.containing_package_id is None), self.robots_))
     
     def get_robot_coordinates_by_id(self, robot_id):
         robot = self.robots_[self.robot_id2order[robot_id]]
@@ -233,43 +243,54 @@ class RobotController:
         else:
             self.assighn_path_to(robot_id, command)
     
-    def update_state_by_command(self, r_x, r_y, d, command):
+    def update_state_by_command(self, r_o_id, command):
+        r_x, r_y, d = self.robots_[r_o_id].position.x, self.robots_[r_o_id].position.y, self.robots_[r_o_id].direction
+        # right before sending a command
         if command[0] == "move_forward":
             n_x, n_y = (r_x - (d%2)*(d - 2), r_y + ((d+1)%2)*(d-1))
             assert self.occupation_map_[n_y, n_x] == 0 and self.map_.get(n_x, n_y).tile_class != TileClass.BLOCK
             if self.map_.get(n_x, n_y).tile_class != TileClass.QUEUE_TILE:
                 self.occupation_map_[n_y, n_x] += 1
+        self.robot_command_awaiting[r_o_id] = True
         return True
             
-    def send_robot_command_(self, robot_o_id, command_func_name, **kwargs):
-        yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)(kwargs))
+    def send_robot_command_(self, robot_o_id, command_func_name, kwargs):
+        if kwargs:
+            yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)(kwargs))
+        else:
+            yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)())
         self.robot_responses[robot_o_id] = True
+        self.robot_command_awaiting[robot_o_id] = False
         
     def send_current_commands(self):
         for robot_o_id in range(self.number_robots):
-            if self.current_commands_[robot_o_id]:
+            if (not self.robot_command_awaiting[robot_o_id]) and self.current_commands_[robot_o_id] is not None:
                 # occupy the direction in which the robot moves if it does (also checks if the move is valid)
-                self.update_state_by_command(self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction, self.current_commands_[robot_o_id])
+                self.update_state_by_command(robot_o_id, self.current_commands_[robot_o_id])
                 # if the move is ok then make it
                 print(f"{self.env.now}: sending command {self.current_commands_[robot_o_id][0]} to robot {robot_o_id}")
-                self.env.process(self.send_robot_command_(robot_o_id, self.current_commands_[robot_o_id][0], **self.current_commands_[robot_o_id][1]))
+                self.env.process(self.send_robot_command_(robot_o_id, self.current_commands_[robot_o_id][0], self.current_commands_[robot_o_id][1]))
                 
     def make_routine_loop(self):
-        print("current pathes: ", self.pathes_)
-        self.update_occupation_map_and_positions() # based on PREVIOUS commands which are stored as current_commands, robot_responses
+        print(f"commands awaiting: {self.robot_command_awaiting}")
+        print(f"robot responses: {self.robot_responses}")
+        self.update_state_by_responses() # based on PREVIOUS commands which are stored in current_commands, robot_responses
         self.update_current_commands() # we consider that dws and wms commands through tick HAVE ALREADY BEEN PROCESSED
         self.empty_robot_responses()
-        print(f"current commands: ", self.current_commands_)
+        print(f"robot commands to be sent now: {self.current_commands_}")
         self.send_current_commands()
 
     def update_current_commands(self):
         for robot_o_id in range(self.number_robots):
-            if self.robot_responses[robot_o_id] and len(self.pathes_[robot_o_id]) > 0:
-                self.current_commands_[robot_o_id] = self.pathes_[robot_o_id].popleft()
-            else:
-                self.current_commands_[robot_o_id] = None
+            if not self.robot_command_awaiting[robot_o_id]:
+                if len(self.pathes_[robot_o_id]) > 0:
+                    self.current_commands_[robot_o_id] = self.pathes_[robot_o_id].popleft()
+                else:
+                    self.current_commands_[robot_o_id] = None
     def empty_robot_responses(self):
         self.robot_responses.fill(False)
+    def empty_current_commands(self):
+        self.current_commands_.fill(None)
         
     @classmethod
     def optimal_rotation(cls, start_d, end_d):
@@ -303,8 +324,8 @@ class RobotController:
                     new_d = 0
                 else:
                     new_d = 2
-                parsed_commands.extend([("turn", {"right" : is_right}) for is_right in self.optimal_rotation(prev_d, new_d)])
-                parsed_commands.append(("move_forward", dict()))      
+                parsed_commands.extend([("turn", {"right" : is_right}) for is_right in cls.optimal_rotation(prev_d, new_d)])
+                parsed_commands.append(("move_forward", None))      
                 prev_x, prev_y, prev_d = new_x, new_y, new_d
             elif command[0] == 1:
                 # receive
