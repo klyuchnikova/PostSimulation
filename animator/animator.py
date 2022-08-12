@@ -3,7 +3,8 @@ from xml.dom import minidom
 from main.tools.xml_parser import xmldom2dict
 from datetime import datetime, timedelta
 import pygame
-import os, sys
+import imageio
+import os, sys, glob
 import math
 import time
 
@@ -50,7 +51,7 @@ class LabelBlock:
 class MapBlock:
     def __init__(self):
         self.wind = None
-        self.map_classes = [] # 2d array of tile classes in string format like "TileClass.BLOCK"
+        self.map_classes = [] # 2d array of tile classes in string format like "TileState.BLOCK"
         self.map_pictures_pathes = [] # 2d array of tile     
         self.map_width = 0
         self.map_height = 0
@@ -73,8 +74,9 @@ class MapBlock:
         self.map_pix_height, self.map_pix_width = self.map_height*(self.tile_pix_height + self.border_width) + self.border_width, self.map_width*(self.tile_pix_width + self.border_width) + self.border_width
         self.map_pix_size = (self.map_pix_width, self.map_pix_height)
         
-        self.box_size = (self.map_pix_width, self.map_pix_height)
+        self.box_size = (self.map_pix_width , self.map_pix_height)
         
+        self.tile_with_borders_size = (self.tile_pix_width + self.border_width, self.tile_pix_height + self.border_width)
         self.map_pictures = list(map(lambda row: list(map(lambda fpath: 
                                                           pygame.transform.scale(pygame.image.load(fpath), (self.tile_pix_width, self.tile_pix_height)), 
                                                           row)), self.map_pictures_pathes))
@@ -100,7 +102,9 @@ class MapBlock:
         self.draw_pictured_tiles()
 
 class Aimator:
-    def __init__(self, obs_config_path, robot_config_path, mid_frames = 1):
+    def __init__(self, obs_config_path, robot_config_path, mid_frames = 1, show_window = False):
+        if not show_window:
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
         self.clock = pygame.time.Clock()
         
@@ -183,8 +187,8 @@ class Aimator:
     
     def draw_robot(self, robot_id, x_pix, y_pix, d, has_pckg):
         # x, y -> coordinates in PIXELS! of left top corner of the rectangle
-        print(f"drawing robot {(robot_id, x_pix, y_pix, d)}")
-        center = (x_pix + self.map_controller.tile_pix_width//2, y_pix + self.map_controller.tile_pix_height//2)
+        #print(f"drawing robot {(robot_id, x_pix, y_pix, d)}")
+        center = (x_pix + self.map_controller.tile_with_borders_size[0]//2, y_pix + self.map_controller.tile_with_borders_size[1]//2)
         pygame.draw.circle(self.map_controller.win, self.robot_color, center, self.robot_radius)
         if d >= 4:
             d -= 4
@@ -193,7 +197,7 @@ class Aimator:
         sin_phi = math.sin(d*math.pi/2)
         # M = [(cos_phi, sin_phi),
         #     (-sin_phi, cos_phi)]
-        x,y = 0, self.map_controller.tile_pix_height//2 - 2
+        x, y = 0, self.map_controller.tile_with_borders_size[0]//2 - 2
         x, y = cos_phi*x + sin_phi*y, -sin_phi*x + cos_phi*y
         pygame.draw.line(self.map_controller.win, (0, 0, 0), center, end_pos = (center[0] + x, center[1] + y) , width = 5)
     
@@ -218,7 +222,7 @@ class Aimator:
                 # example: (0, 0, 'rob_0', 5, 15, 1, 'True')
                 robot_id, x, y, d, has_package = writing[2:]
                 has_package = (has_package == "True")
-                x, y = x*self.map_controller.tile_pix_width, y*self.map_controller.tile_pix_height
+                x, y = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1]
                 old_x, old_y, old_d = self.robots.get(robot_id, (x, y, d))
                 k = (mid_frame+1)/self.mid_frames
                 if old_d == 3 and d == 0:
@@ -228,10 +232,10 @@ class Aimator:
                 self.draw_robot(robot_id, x*k + old_x*(1-k), y*k + old_y*(1-k), d*k + old_d*(1-k), has_package)
             self.win.blit(self.map_controller.win, self.map_controller.shifts)
             self.draw_update()
-            self.clock.tick(self.one_pause/60)
+            self.clock.tick(60)
         for writing in new_positions:
             robot_id, x, y, d, has_package = writing[2:] 
-            self.robots[robot_id] = x*self.map_controller.tile_pix_width, y*self.map_controller.tile_pix_height, d
+            self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d
         
     def display(self, dpath):
         frame_id = 0
@@ -240,16 +244,75 @@ class Aimator:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit(); 
-            anim.draw(frame_id)
+            self.draw(frame_id)
             time.sleep(1)
             frame_id += 1
+        self.robots = dict()
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit(); sys.exit();            
+                    pygame.quit(); sys.exit();    
+    
+    def draw_zip(self, frame_id, dpath, cadre):
+        # we have previous positions in dict (robot id to position) and therefore need to make a few cadres
+        # to do that we need to find those which locations have changed
+        new_positions = self.get_robot_frame(frame_id)
+        clock = pygame.time.Clock()
+        for mid_frame in range(self.mid_frames):
+            self.draw_background(frame_id)
+            if len(new_positions) == 0:
+                self.number_frames = frame_id + 1
+                # cause it's the last frame with data
+            for writing in new_positions:
+                # example: (0, 0, 'rob_0', 5, 15, 1, 'True')
+                robot_id, x, y, d, has_package = writing[2:]
+                has_package = (has_package == "True")
+                x, y = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1]
+                old_x, old_y, old_d = self.robots.get(robot_id, (x, y, d))
+                k = (mid_frame+1)/self.mid_frames
+                if old_d == 3 and d == 0:
+                    d = 4
+                elif old_d == 0 and d == 3:
+                    old_d = 4
+                self.draw_robot(robot_id, x*k + old_x*(1-k), y*k + old_y*(1-k), d*k + old_d*(1-k), has_package)
+            self.win.blit(self.map_controller.win, self.map_controller.shifts)
+            self.draw_update()
             
-    def generate_zip(dpath, sim_name):
-        pass
+            fpath = os.path.join(dpath, f"screen_{cadre}.png")
+            pygame.image.save(self.win, fpath)
+            self.images.append(imageio.imread(fpath))
+            
+            cadre += 1
+            #self.clock.tick(60)
+        for writing in new_positions:
+            robot_id, x, y, d, has_package = writing[2:] 
+            self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d   
+        return cadre
+            
+    def generate_zip(self, fpath):
+        print(f"{time.time()}: started generating zip")        
+        fpath = os.path.normpath(fpath)
+        dpath = os.path.join(os.path.dirname(fpath), "tmp")
+        if not os.path.exists(dpath):
+            os.mkdir(dpath)
+        
+        frame_id = 0
+        cadre = 0
+        self.robots = dict()
+        self.images = []
+        while frame_id < self.number_frames:
+            cadre = self.draw_zip(frame_id, dpath, cadre)
+            frame_id += 1
+        imageio.mimsave(fpath, self.images)
+        print(f"{time.time()}: result saved to {fpath}")
+        self.robots = dict()
+        self.images = []
+        
+        for f in glob.glob(f'{dpath}/*'):
+            os.remove(f)
+        os.rmdir(dpath)
+        pygame.quit(); sys.exit(); 
+        
     def generate_zip_to_all(dpath):
         pass
     
@@ -257,4 +320,4 @@ if __name__ == "__main__":
     anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_map.xml", 
                    "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_log.db", 
                    5)
-    anim.display("")
+    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0.gif")

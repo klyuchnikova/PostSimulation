@@ -35,7 +35,34 @@ class TileState(Enum):
     EXIT_CELL = 24
     ERROR = 25
     
-TILE_TYPE_PICTURES = dict.fromkeys(np.arange(26), "ARROW_EXAMPLE.png")
+TILE_TYPE_PICTURES = {
+    TileState.NULL_CELL._value_ : "NULL_CELL.png",
+    TileState.SHELF_CELL._value_ : "SHELF_CELL.png",
+    TileState.E2W_PATH_CELL._value_ : "E2W_PATH_CELL.png",
+    TileState.W2E_PATH_CELL._value_ : "W2E_PATH_CELL.png",
+    TileState.S2N_PATH_CELL._value_ : "S2N_PATH_CELL.png",
+    TileState.N2S_PATH_CELL._value_ : "N2S_PATH_CELL.png",
+    TileState.E2W_S2N_PATH_CELL._value_ : "E2W_S2N_PATH_CELL.png",
+    TileState.E2W_N2S_PATH_CELL._value_ : "E2W_N2S_PATH_CELL.png",
+    TileState.W2E_S2N_PATH_CELL._value_ : "W2E_S2N_PATH_CELL.png",
+    TileState.W2E_N2S_PATH_CELL._value_ : "W2E_N2S_PATH_CELL.png",
+    TileState.E2W_W2E_PATH_CELL._value_ : "E2W_W2E_PATH_CELL.png",
+    TileState.N2S_S2N_PATH_CELL._value_ : "N2S_S2N_PATH_CELL.png",
+    TileState.E2W_W2E_N2S_PATH_CELL._value_ : "E2W_W2E_N2S_PATH_CELL.png",
+    TileState.E2W_W2E_S2N_PATH_CELL._value_ : "E2W_W2E_S2N_PATH_CELL.png",
+    TileState.N2S_S2N_E2W_PATH_CELL._value_ : "N2S_S2N_E2W_PATH_CELL.png",
+    TileState.N2S_S2N_W2E_PATH_CELL._value_ : "N2S_S2N_W2E_PATH_CELL.png",
+    TileState.OMNI_DIR_CELL._value_ : "OMNI_DIR_CELL.png",
+    17 : "OMNI_DIR_CELL.png",
+    18 : "OMNI_DIR_CELL.png",
+    19 : "OMNI_DIR_CELL.png",
+    20 : "OMNI_DIR_CELL.png",
+    21  : "NULL_CELL.png",
+    22  : "NULL_CELL.png",
+    23  : "NULL_CELL.png",
+    24 : "NULL_CELL.png",
+    25  : "NULL_CELL.png"
+}
 
 def get_available_direction_list(tile_type):
     if tile_type._value_ == 1 or 16<=tile_type._value_<=20:
@@ -334,7 +361,7 @@ class PostMap:
         return list(map(lambda row: list(map(lambda tile: tile.tile_class, row)), self.tile_map))
     
     def get_map_coloring_files(self):
-        return [[os.path.join(os.path.normpath(r"E:\E\Copy\PyCharm\RoboPost\PostSimulationP\data\simulation_data\tile_type_pictures"), TILE_TYPE_PICTURES[tile.tile_type._value_]) for tile in self.tile_map[i]] for i in range(len(self.tile_map))]
+        return [[os.path.join(os.path.normpath(r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\tile_type_pictures"), TILE_TYPE_PICTURES[tile.tile_type._value_]) for tile in self.tile_map[i]] for i in range(len(self.tile_map))]
 
 from main.tools.generators import save_robot_configuration, save_queue_config
 def generate_random_robot_config_on_free_tiles(map_path, save_path = "robot_v0.xml", number_robots = 5):

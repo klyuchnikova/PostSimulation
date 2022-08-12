@@ -205,7 +205,10 @@ class RobotController:
                     self.robot_positions_[robot_o_id] = (self.robot_positions_[robot_o_id][0] - (d%2)*(d - 2), self.robot_positions_[robot_o_id][1] + ((d+1)%2)*(d-1))
                     #self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] +=1
                 elif self.current_commands_[robot_o_id][0] == "turn":
-                    self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + self.current_commands_[robot_o_id][1]["right"])%4
+                    if self.current_commands_[robot_o_id][1]["right"]:
+                        self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + 1)%4
+                    else:
+                        self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] - 1)%4
                 self.current_commands_[robot_o_id] = None
                     
     def get_robots_filling(self):
