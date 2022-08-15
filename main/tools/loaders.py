@@ -15,12 +15,14 @@ def load_xml_config_key(fpath, key):
 
 def load_map_configuration(fpath):
     doc = minidom.parse(fpath).getElementsByTagName('map')[0]
-    needed_keys = ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas']
+    needed_keys = ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas', 'destinations', 'sendingareas']
     map_dom = xmldom2dict(doc)['map']
     map_dom['stations'] = [xmldom2dict(elem)['station'] for elem in doc.getElementsByTagName('station')]
     map_dom['virtualstations'] = [xmldom2dict(elem)['virtualstation'] for elem in doc.getElementsByTagName('virtualstation')]
     map_dom['chargers'] = [xmldom2dict(elem)['charger'] for elem in doc.getElementsByTagName('charger')]
+    map_dom['destinations'] = [xmldom2dict(elem)['destination'] for elem in doc.getElementsByTagName('destination')]
     map_dom['sortingareas'] = [xmldom2dict(elem)['area'] for elem in doc.getElementsByTagName('area')]
+    map_dom['sendingareas'] = [xmldom2dict(elem)['sendingarea'] for elem in doc.getElementsByTagName('sendingarea')]
     return map_dom
 
 def load_robot_configuration(fpath):
@@ -59,4 +61,3 @@ def load_dws_configuration(fpath):
     fpath = os.path.join(fpath, os.path.split(fpath)[1])
     with shelve.open(fpath) as log_wms_file:
         return dict(map(lambda x: (datetime.fromisoformat(x[0]),x[1]), log_wms_file.items()))
-    

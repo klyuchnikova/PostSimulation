@@ -3,10 +3,25 @@ from xml.dom import minidom
 from main.tools.xml_parser import xmldom2dict
 from datetime import datetime, timedelta
 import pygame
+from pygame import surfarray
 import imageio
 import os, sys, glob
 import math
 import time
+from PIL import Image
+import numpy as np
+import colorsys
+
+def shift_hue(image, hout = None, light_coeff = None, saturation_coeff = None):
+    hsv = np.array(image.convert('HSV').getdata())
+    if hout is not None:
+        hsv[...,0]=hout
+    if light_coeff is not None:
+        hsv[...,1]= np.round(hsv[...,1]*light_coeff)
+    if saturation_coeff is not None:
+        hsv[...,2]= np.round(hsv[...,2]*saturation_coeff)
+    hsv = hsv.reshape((image.height, image.width, 3))
+    return np.array(Image.fromarray(hsv.astype('uint8'), 'HSV').convert('RGB')) #np.apply_along_axis(lambda pix: colorsys.hsv_to_rgb(*pix), 0, hsv).reshape((image.height, image.width, 3))
 
 class LabelBlock:
     def __init__(self):
@@ -69,6 +84,20 @@ class MapBlock:
         self.map_up_shift = self.margin_width
         self.shifts = (self.map_left_shift, self.map_up_shift)
         
+    def color_surface(self, surface, red, green, blue):
+        arr = surfarray.pixels3d(surface)
+        arr[:,:,0] = red
+        arr[:,:,1] = green
+        arr[:,:,2] = blue
+            
+    def load_picture(self, fpath, tile_class):
+        img = Image.open(fpath).resize((self.tile_pix_width, self.tile_pix_height))
+        surface = pygame.Surface((self.tile_pix_width, self.tile_pix_height))
+        tile_class_hue = {"TileClass.STATION_TILE" : (120, None, 0.9), "TileClass.SORTING_TILE": (0,), "TileClass.QUEUE_TILE" : (20,), "TileClass.CHARGE_TILE" : (50,), "TileClass.DESTINATION" : (260,), "TileClass.BLOCK" : (None, None, 0.5)}
+        hue = tile_class_hue.get(tile_class, (None,))
+        surfarray.blit_array(surface, shift_hue(img, *hue))
+        return surface
+        
     def pre_setup(self):
         self.map_height, self.map_width = len(self.map_classes), len(self.map_classes[0])
         self.map_pix_height, self.map_pix_width = self.map_height*(self.tile_pix_height + self.border_width) + self.border_width, self.map_width*(self.tile_pix_width + self.border_width) + self.border_width
@@ -77,9 +106,10 @@ class MapBlock:
         self.box_size = (self.map_pix_width , self.map_pix_height)
         
         self.tile_with_borders_size = (self.tile_pix_width + self.border_width, self.tile_pix_height + self.border_width)
-        self.map_pictures = list(map(lambda row: list(map(lambda fpath: 
-                                                          pygame.transform.scale(pygame.image.load(fpath), (self.tile_pix_width, self.tile_pix_height)), 
-                                                          row)), self.map_pictures_pathes))
+        self.map_pictures = [[0]*self.map_width for _ in range(self.map_height)]
+        for i in range(self.map_height):
+            for j in range(self.map_width):
+                self.map_pictures[i][j] = self.load_picture(self.map_pictures_pathes[i][j], self.map_classes[i][j])
         self.bg = pygame.Rect(0, 0, self.map_pix_width, self.map_pix_height) #pygame.surface.Surface(self.map_pix_size)
         
     def drawGrid(self):
@@ -189,6 +219,7 @@ class Aimator:
         # x, y -> coordinates in PIXELS! of left top corner of the rectangle
         #print(f"drawing robot {(robot_id, x_pix, y_pix, d)}")
         center = (x_pix + self.map_controller.tile_with_borders_size[0]//2, y_pix + self.map_controller.tile_with_borders_size[1]//2)
+        pygame.draw.circle(self.map_controller.win, (0, 0, 0), center, self.robot_radius + 2)
         pygame.draw.circle(self.map_controller.win, self.robot_color, center, self.robot_radius)
         if d >= 4:
             d -= 4
@@ -215,7 +246,6 @@ class Aimator:
         # to do that we need to find those which locations have changed
         new_positions = self.get_robot_frame(frame_id)
         clock = pygame.time.Clock()
-        print("frame_id: ", frame_id)
         for mid_frame in range(self.mid_frames):
             self.draw_background(frame_id)
             for writing in new_positions:
@@ -237,7 +267,16 @@ class Aimator:
             robot_id, x, y, d, has_package = writing[2:] 
             self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d
         
-    def display(self, dpath):
+    def show(self):
+        while True:#self.number_frames:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit(); 
+            self.draw_background(0) 
+            self.draw_update()
+            self.clock.tick(1)
+            
+    def display(self):
         frame_id = 0
         self.robots = dict()
         while frame_id < 14:#self.number_frames:
@@ -290,7 +329,7 @@ class Aimator:
         return cadre
             
     def generate_zip(self, fpath):
-        print(f"{time.time()}: started generating zip")        
+        print(f"{datetime.now().strftime('%H:%M:%S')}: started generating zip")        
         fpath = os.path.normpath(fpath)
         dpath = os.path.join(os.path.dirname(fpath), "tmp")
         if not os.path.exists(dpath):
@@ -304,7 +343,7 @@ class Aimator:
             cadre = self.draw_zip(frame_id, dpath, cadre)
             frame_id += 1
         imageio.mimsave(fpath, self.images)
-        print(f"{time.time()}: result saved to {fpath}")
+        print(f"{datetime.now().strftime('%H:%M:%S')}: result saved to {fpath}")
         self.robots = dict()
         self.images = []
         
@@ -319,5 +358,6 @@ class Aimator:
 if __name__ == "__main__":
     anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_map.xml", 
                    "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_log.db", 
-                   5)
+                   5, False)
+    #anim.display()
     anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0.gif")

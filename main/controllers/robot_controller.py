@@ -28,11 +28,11 @@ class QueueAreaController:
         
         # first arrange path - build it from tiles
         self.arrange_queue_path(queue_path)
-        # then when self.path is set 1) move all the robots standing in the path tiles out and add them to robot_order_
-        self.clear_queue_area()
         # create queue tile
         self.queue_tile = None
-        self.create_queue_tile()
+        self.create_queue_tile()        
+        # then when self.path is set 1) move all the robots standing in the path tiles out and add them to robot_order_
+        self.clear_queue_area()
         # change neighbour connections of bounderies
         self.arrange_neighbour_connections_()
         
@@ -60,10 +60,12 @@ class QueueAreaController:
     def clear_queue_area(self):
         for tile in self.path:
             if tile.robot is not None:
-                self.robot_order_.append(tile.robot)
-                yield self.queue_tile.request_move_in(tile.robot)
-                tile.robot.position.robot = None
-                tile.robot.position = self.queue_tile
+                robot = tile.robot
+                self.robot_order_.append(robot)
+                self.queue_tile.init_move_in(robot)
+                tile.init_move_out(robot)
+                robot.position = self.queue_tile
+                self.robot_controller.assighn_robot_position(robot, self.receiver_x, self.receiver_y, self.receiver_in_direction)
         
     def move_in_robot_(self, robot, tile):
         # robot must already be on the tile inside Queue area
@@ -150,7 +152,7 @@ class RobotController:
         directotions_id = {'n' : 0, 'w' : 1, 's' : 2, 'e' : 3}
         for i, queue_conf in enumerate(start_config):
             conv_id, receiver_d, queue_path = int(queue_conf["receiver_id"]), int(queue_conf["receiver_direction"]) , queue_conf["path"]
-            self.queue_controllers[conv_id] = QueueAreaController(self, self.env, conv_id, receiver_d, self.map_, queue_path)
+            self.queue_controllers[conv_id] = QueueAreaController(self.env, self, conv_id, receiver_d, self.map_, queue_path)
             
     
     def __init__(self, env, map_, queues_init_file, robot_init_file, config_vars):
