@@ -7,6 +7,7 @@ import os, sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class TileState(Enum):
     NULL_CELL = 0
     SHELF_CELL = 1
@@ -87,9 +88,12 @@ class TileClass(Enum):
     SORTING_TILE = 3
     QUEUE_TILE = 4
     BLOCK = 5
+    DESTINATION = 6
+    SENDING_TILE = 7
 
 class Tile:    
     def __init__(self, env, tile_id, tile_type_id, x, y):
+        self.env = env
         self.tile_id = tile_id
         self.tile_type = TileState[TileState._member_names_[tile_type_id]]
         self.available_directions_ = get_available_direction_list(self.tile_type)
@@ -113,7 +117,11 @@ class Tile:
     def init_move_in(self, robot):
         print(f"robot {robot.robot_id} starts in ({self.x}, {self.y})")
         self.robot = robot
-        self.container.put(1)
+        self.container = simpy.resources.container.Container(self.env, 1, init = 1)
+    def init_move_out(self, robot):
+        print(f"robot {robot.robot_id} is forcefully removed from ({self.x}, {self.y})")
+        self.robot = None
+        self.container = simpy.resources.container.Container(self.env, 1, init = 0)  
         
     def request_move_in(self, robot):
         if self.container:
@@ -137,6 +145,7 @@ class Tile:
     
 class QueueTile(Tile):
     def __init__(self, env, queue_controller, tile_id, reciever_tile, queue_size):
+        self.env = env
         self.queue_controller = queue_controller
         self.tile_id = tile_id
         self.tile_type = reciever_tile.tile_type
@@ -146,8 +155,9 @@ class QueueTile(Tile):
         self.tile_class = TileClass.SORTING_TILE
         self.neighbours = reciever_tile.neighbours
         self.robot = None # allways None
+        self.queue_size = queue_size
         
-        self.container = simpy.resources.container.Container(env, queue_size, init = 0)
+        self.container = simpy.resources.container.Container(self.env, self.queue_size, init = 0)
         
         self.connection_parameters = 1.
         self.receive_package_direction = None
@@ -158,6 +168,10 @@ class QueueTile(Tile):
             self.queue_controller.move_in_robot(robot, robot.position)
         else:
             raise Exception("tile not movable!")
+    def init_move_in(self, robot):
+        print(f"robot {robot.robot_id} is initially moved to receiver in ({self.x}, {self.y})")
+        self.robot = robot
+        self.container = simpy.resources.container.Container(self.env, self.queue_size, init = self.container.level + 1)    
         
 class PostMap:
     def __init__(self, env, map_file_path = "..\\..\\data\\simulation_data\\map.xml"):
@@ -168,12 +182,10 @@ class PostMap:
         self.tile_map = [[],]
         # loading file and defining type map as well as some parameters
         self.load(map_file_path)
-        # create tiles based on the type_map and other info
-        self.generate_tile_map()
         
     def load(self, file_path):
         tree = load_map_configuration(file_path)
-        # keys are ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas', '#attributes']
+        # keys are ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas', '#attributes', 'destinations', 'sendingareas']
         
         for attr_name_, attr_val_ in tree['#attributes'].items():
             self.__dict__[attr_name_] = float(attr_val_)
@@ -201,8 +213,7 @@ class PostMap:
             station_id, x, y, direction = station['id'], int(station['locationx']), int(station['locationy']), int(station['beltDirection'])
             min_x, min_y = min(min_x, x), min(min_y, y)
             max_x, max_y = max(max_x, x), max(max_y, y)
-            self.station_tiles[station_id] = {"tile" : None, "x": x, "y" : y, 'direction' : direction}         
-            
+            self.station_tiles[station_id] = {"tile" : None, "x": x, "y" : y, 'direction' : direction}  
         
         # i also decided to optimize the map by removing borders of zeros  
         while self.tile_type_map_.size > 0 and np.all((self.tile_type_map_[-1] == 0)) and self.tile_type_map_.shape[0] > max_y+1:
@@ -227,9 +238,25 @@ class PostMap:
             self.charging_tiles[station_id]['y'] -= self.up_shift_
         for station_id in self.sorting_tiles.keys():
             self.sorting_tiles[station_id]['x'] -= self.left_shift_
-            self.sorting_tiles[station_id]['y'] -= self.up_shift_           
-    
+            self.sorting_tiles[station_id]['y'] -= self.up_shift_       
         self.tile_height, self.tile_width = self.tile_type_map_.shape
+        # create tiles based on the type_map and other info
+        self.generate_tile_map()
+        
+        self.sending_areas = dict() #id -> tile
+        direct2num = {"n" : 0, "e" : 1, "s" : 2, "w" : 3}
+        for send_area in tree["sendingareas"]:
+            area_id, x, y, d = send_area['areaid'], int(send_area['x']), int(send_area['y']), direct2num[send_area["send_direction"]]
+            x,y = x - self.left_shift_, y - self.up_shift_
+            self.get(x,y).tile_class = TileClass.SENDING_TILE
+            self.get(x,y).dest_id = area_id
+            self.get(x,y).direction_send = d
+            self.sending_areas[area_id] = self.get(x,y)
+        for destination in tree["destinations"]:
+            dest_id, x, y = destination["id"], int(destination["locationx"]), int(destination["locationy"])
+            x,y = x - self.left_shift_, y - self.up_shift_
+            self.get(x,y).tile_class = TileClass.DESTINATION
+            self.get(x,y).dest_id = dest_id
            
     def generate_tile_map(self):
         pr_tile_id = 0
@@ -352,6 +379,10 @@ class PostMap:
         tiles = np.array(self.tile_map).flatten()
         tiles = tiles[[(a.tile_class == tile_class) for a in tiles]]
         return tiles
+    def get_tiles_by_type(self, tile_type = TileState.SHELF_CELL):
+        tiles = np.array(self.tile_map).flatten()
+        tiles = tiles[[(a.tile_type == tile_type) for a in tiles]]
+        return tiles    
     
     @property
     def size(self):
@@ -376,9 +407,24 @@ def generate_random_robot_config_on_free_tiles(map_path, save_path = "robot_v0.x
 if __name__ == "__main__":
     map_file_path=r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\map_v0.xml"
     map_ = PostMap(simpy.Environment(), map_file_path = map_file_path)
-    #map_.show()
+    """
+    pot_tiles = map_.get_tiles_by_type()
+    left_tiles = list(filter(lambda tile: tile.x == 0 or tile.x == 18 or tile.x == 36, pot_tiles))
+    up_tiles = list(filter(lambda tile: tile.y == 0, pot_tiles))
+    right_tiles = list(filter(lambda tile: tile.x == 12 or tile.x == 30 or tile.x == map_.tile_width-1, pot_tiles))
+    number_tile = 0
+    for tile in left_tiles:
+        print("    <destination>")
+        print("      " + f'<id>"{"D" + str(number_tile)}"</id>')
+        print("      " + f'<locationx>{tile.x + map_.left_shift_}</locationx>')
+        print("      " + f'<locationy>{tile.y + map_.up_shift_}</locationy>')
+        print("      " + f'<send_direction>"w"</send_direction>')
+        print("    </destination>")
+        print(f'      <sendingarea areaid="{"D" + str(number_tile)}" x="{tile.x + map_.left_shift_ + 1}"  y="{tile.y + map_.up_shift_}" z="1" send_direction="w" />')
+        number_tile += 1
+    """
     #generate_random_robot_config_on_free_tiles(map_file_path, r'E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\robots_2.xml', 5)
-    data = map_.generate_queue_pathes()
+    #data = map_.generate_queue_pathes()
     fpath = r'E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\queue_v0.xml'
-    save_queue_config(fpath, data)
+    #save_queue_config(fpath, data)
     
