@@ -40,46 +40,57 @@ class Robot:
         self.speed = speed
         self.charge = charge
         self.containing_package_id = None
+        self.blocked = False
+        self.printing_events = False      
         
     def move_forward(self, **kwargs):
-        print(f"{self.env.now}: robot {self.robot_id} moving forward ({Robot.MOVING_ONE_TILE_TIMEOUT})")
+        if self.printing_events:
+            print(f"{self.env.now}: robot {self.robot_id} moving forward from {self.position.x}, {self.position.y}, {self.direction}")
         next_tile = self.position.neighbours[self.direction]
         if next_tile is None:
             yield Exception(f"{self.robot_id} from position {self.position.tile_id} no tile in the facing direction {self.direction}")
-            return False
         else:
             yield self.env.process(next_tile.request_move_in(self))
             yield self.env.timeout(Robot.MOVING_ONE_TILE_TIMEOUT)
             yield self.env.process(self.position.request_move_out(self))
-            self.position = next_tile            
-            return True
+            self.position = next_tile  
+        if self.printing_events:
+            print(f"{self.env.now}: robot {self.robot_id} moved in {self.position.x}, {self.position.y}, {self.direction}")
+        return True
                 
     def turn(self, right = True):
-        print(f"{self.env.now}: robot {self.robot_id} turning")
+        if self.printing_events:
+            print(f"{self.env.now}: robot {self.robot_id} turning {self.direction} right = {right}")
         # direction is either left or right
         yield self.env.timeout(Robot.TURNING_ONE_TIMEOUT)
         if right:
             self.direction = (self.direction + 1)%4
         else:
             self.direction = (self.direction - 1)%4
+        if self.printing_events:
+            print(f"{self.env.now}: robot {self.robot_id} turned {self.direction} right = {right}")
     
     def receive_package(self, package_id):
-        print(f"{self.env.now}: receive package start ({Robot.TAKING_PACKAGE_TIMEOUT})")
+        if self.printing_events:
+            print(f"{self.env.now}: receive package start ({Robot.TAKING_PACKAGE_TIMEOUT})")
         yield self.env.timeout(Robot.TAKING_PACKAGE_TIMEOUT)
         self.containing_package_id = package_id
-        print(f"{self.env.now}: bot {self.robot_id} recieved {package_id}")
+        if self.printing_events:
+            print(f"{self.env.now}: bot {self.robot_id} recieved {package_id}")
         
     def send_package(self, package_id):
-        print(f"{self.env.now}: send package start ({Robot.SENDING_PACKAGE_TIMEOUT})")
+        if self.printing_events:
+            print(f"{self.env.now}: send package start ({Robot.SENDING_PACKAGE_TIMEOUT})")
         yield self.env.timeout(Robot.SENDING_PACKAGE_TIMEOUT)
         self.containing_package_id = None
-        print(f"{self.env.now}: bot {self.robot_id} sent {package_id}")
+        if self.printing_events:
+            print(f"{self.env.now}: bot {self.robot_id} sent {package_id}")
   
 class DWS_communicator:
     SYSTEM_TYPES = ['SERVER', 'FROM_FILE', 'DEFINE']
     
     def __init__(self, input_type = "FROM_FILE", fpath = None, server = None, **kwargs):
-        assert input_type in WMS_communicator.SYSTEM_TYPES
+        assert input_type in DWS_communicator.SYSTEM_TYPES
         self.input_type = input_type
         
         self.events_ = dict()
@@ -107,36 +118,3 @@ class DWS_communicator:
     def receive_tick_events(self, tick_id):
         return self.tick_events_[tick_id]
     
-class WMS_communicator:
-    SYSTEM_TYPES = ['SERVER', 'FROM_FILE', 'DEFINE']
-    def __init__(self, map_controller, input_type = 'DEFINE', fpath = None, server = None, **kwargs):
-        assert input_type in WMS_communicator.SYSTEM_TYPES
-        self.input_type = input_type
-        self.fpath = fpath
-        self.server = server
-        self.map_controller = map_controller
-     
-    def receive_message(self, event):
-        pkg_id = event['id']
-        receiver_id = event['conveyer_id']
-        destination = event['destination']
-        return self.build_path(pkg_id, receiver_id, destination)
-        
-    def build_path(self, pkg_id, receiver_id, destination):
-        # path is built in an order-tile like manner
-        # response is like {'robot_id' : None or robot id, 
-        #                   'receiver_id' : None or receiver_id, 'command' : [# commad like (c_type, data) ]}
-        # c_type : 0 - move | 1 - receive pckg      | 2 - deliver pckg | 3 - charge
-        # data :  (x,y)     | (receiver_id, pkg_id) |      -//-        | (chrger_id, charge_time) 
-        
-        robot_id = 'rob_0'
-        cur_x, cur_y = self.map_controller.get_robot_coordinates_by_id(robot_id)
-        rec_pkg = (1, (receiver_id, pkg_id))
-        move_1 = (0, (cur_x + 1, cur_y))
-        move_2 = (0, (cur_x, cur_y))
-        del_pkg = (2, (receiver_id, pkg_id))
-        return {'robot_id' : robot_id, 'receiver_id' : None, 'command' : [rec_pkg,move_1, move_2, del_pkg]}
-    def send_answer(self):
-        pass
-    def define_construct_path_(self):
-        pass

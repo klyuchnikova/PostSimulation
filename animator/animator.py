@@ -20,7 +20,7 @@ def shift_hue(image, hout = None, light_coeff = None, saturation_coeff = None):
         hsv[...,1]= np.round(hsv[...,1]*light_coeff)
     if saturation_coeff is not None:
         hsv[...,2]= np.round(hsv[...,2]*saturation_coeff)
-    hsv = hsv.reshape((image.height, image.width, 3))
+    hsv = np.transpose(hsv.reshape((image.height, image.width, 3)), (1, 0, 2))
     return np.array(Image.fromarray(hsv.astype('uint8'), 'HSV').convert('RGB')) #np.apply_along_axis(lambda pix: colorsys.hsv_to_rgb(*pix), 0, hsv).reshape((image.height, image.width, 3))
 
 class LabelBlock:
@@ -89,6 +89,10 @@ class MapBlock:
         arr[:,:,0] = red
         arr[:,:,1] = green
         arr[:,:,2] = blue
+        
+    def mark(self, x, y):
+        self.map_pictures[y][x].set_alpha(128)
+        self.map_pictures[y][x].fill((255, 0, 0))
             
     def load_picture(self, fpath, tile_class):
         img = Image.open(fpath).resize((self.tile_pix_width, self.tile_pix_height))
@@ -228,8 +232,8 @@ class Aimator:
         sin_phi = math.sin(d*math.pi/2)
         # M = [(cos_phi, sin_phi),
         #     (-sin_phi, cos_phi)]
-        x, y = 0, self.map_controller.tile_with_borders_size[0]//2 - 2
-        x, y = cos_phi*x + sin_phi*y, -sin_phi*x + cos_phi*y
+        x, y = 0, -(self.map_controller.tile_with_borders_size[0]//2 - 2)
+        x, y = cos_phi*x - sin_phi*y, sin_phi*x + cos_phi*y
         pygame.draw.line(self.map_controller.win, (0, 0, 0), center, end_pos = (center[0] + x, center[1] + y) , width = 5)
     
     def draw_background(self, frame_id):
@@ -245,6 +249,9 @@ class Aimator:
         # we have previous positions in dict (robot id to position) and therefore need to make a few cadres
         # to do that we need to find those which locations have changed
         new_positions = self.get_robot_frame(frame_id)
+        if len(new_positions) == 0:
+            self.number_frames = frame_id
+            return
         clock = pygame.time.Clock()
         for mid_frame in range(self.mid_frames):
             self.draw_background(frame_id)
@@ -279,12 +286,12 @@ class Aimator:
     def display(self):
         frame_id = 0
         self.robots = dict()
-        while frame_id < 14:#self.number_frames:
+        while frame_id < self.number_frames:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit(); 
             self.draw(frame_id)
-            time.sleep(1)
+            time.sleep(0.1)
             frame_id += 1
         self.robots = dict()
         while True:
@@ -352,12 +359,17 @@ class Aimator:
         os.rmdir(dpath)
         pygame.quit(); sys.exit(); 
         
-    def generate_zip_to_all(dpath):
+    def generate_zip_to_all(self, dpath):
         pass
+    
+    def mark(self, x, y):
+        self.map_controller.mark(x, y)
     
 if __name__ == "__main__":
     anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_map.xml", 
                    "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_log.db", 
-                   5, False)
-    #anim.display()
-    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0.gif")
+                   5, True)
+    #anim.mark(5, 17)
+    #anim.show()
+    anim.display()
+    #anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0.gif")
