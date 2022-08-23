@@ -20,31 +20,39 @@ class QueueAreaController:
         self.env = env
         self.robot_controller = robot_controller
         self.receiver_id = receiver_id
-        self.receiver_in_direction = (2-receiver_d)%4
-        self.robot_order_ = deque()
+        self.receiver_in_direction = receiver_d
+        self.robot_order_ = deque() #right now useless --!
+        self.pckg_order = deque() #the packages which are NOT beight sent
         self.map_ = map_
-        self.path = []
-        self.robot_arrival_event = dict()
+        self.path = [] #order of tiles in queue
+        
+        # apparently in you look at map robots don't need to turn caue they come from the right direction. I only need to check absence of other commands
+        # self.robot_ready_event = simpy.Event()
+        self.robot_ready = False
         
         # first arrange path - build it from tiles
         self.arrange_queue_path(queue_path)
         # create queue tile
         self.queue_tile = None
-        self.create_queue_tile()        
+        ## self.create_queue_tile()        
         # then when self.path is set 1) move all the robots standing in the path tiles out and add them to robot_order_
-        self.clear_queue_area()
+        ## self.clear_queue_area()
         # change neighbour connections of bounderies
-        self.arrange_neighbour_connections_()
+        ## self.arrange_neighbour_connections_()
         
     def arrange_queue_path(self, queue_path):
         self.queue_length = len(queue_path)
         self.path = [0]*len(queue_path)
         for i, tile_xy in enumerate(queue_path):
             x,y = tile_xy
-            x,y = int(x) - self.map_.left_shift_, int(y) - self.map_.up_shift_          
+            x,y = self.map_.log_coords2new(int(x), int(y))
             self.path[i] = self.map_.get(x,y)
-            self.path[i].tile_class = TileClass.QUEUE_TILE
+            if self.path[i].tile_class == TileClass.PATH_TILE:
+                self.path[i].tile_class = TileClass.QUEUE_TILE
+            self.path[i].in_queue_order = i
         self.receiver_x, self.receiver_y = self.path[-1].x, self.path[-1].y
+        self.receiver_tile = self.map_.station_tiles[self.receiver_id]["tile"]
+        self.receiver_tile.queue_controller = self
             
     def create_queue_tile(self):
         self.queue_tile = QueueTile(env = self.env, queue_controller = self, tile_id = 10**6 + self.receiver_id, 
@@ -52,12 +60,14 @@ class QueueAreaController:
                                     queue_size = self.queue_length)
             
     def arrange_neighbour_connections_(self):
+        """ it can make all surrounding queue tiles connected to one queue tile (was used to make queue area seperate from map) """
         for tile in self.path:
             for direction in range(4):
                 if tile.neighbours[direction]:
                     tile.neighbours[direction].neighbours[(direction + 2)%4] = self.queue_tile
             
     def clear_queue_area(self):
+        """ was used to move the robots initially standing on area to the special position"""
         for tile in self.path:
             if tile.robot is not None:
                 robot = tile.robot
@@ -67,14 +77,38 @@ class QueueAreaController:
                 robot.position = self.queue_tile
                 self.robot_controller.assighn_robot_position(robot, self.receiver_x, self.receiver_y, self.receiver_in_direction)
         
+    def process_queue(self):
+        """runs every time after package queue update
+        1) has packages to send
+        2) has robot ready
+        Then asks robot controller to build path
+        """
+        if self.receiver_tile.robot is not None and len(self.pathes_[self.receiver_tile.robot.robot_o_id]) == 0:
+            self.receiver_tile.robot.blocked = True # so that robot controller will understand that this robot must not be moved
+            if len(self.pckg_order) > 0:
+                print(f"{self.env.time}: receiver {self.receiver_id} is sending package")
+                pckg_id, destination = self.pckg_order.popleft()
+                command = self.wms_.build_path(self.receiver_tile.robot, self.receiver_id, pckg_id, destination)
+                self.receiver_tile.robot.blocked = False
+                self.robot_controller.process_wms_command(command)
+            
+    def receiver_move_in(self, robot):
+        """ this is the function triggered when a robot enters receiver. 
+        what we need to do is check whether the robot has finished moving and therefore ready to take package """
+        if len(self.pathes_[robot.robot_o_id]) == 0:
+            self.robot_ready = True
+        
     def move_in_robot_(self, robot, tile):
         # robot must already be on the tile inside Queue area
+        print(f"moving in: {self.robot_order_} <- {robot.robot_id}")
         self.robot_order_.append(robot)
         # because of difficulties with occupation matrix we have to at some point reallocate robot at the beginning of the queue
         self.robot_controller.assighn_robot_position(robot, self.receiver_x, self.receiver_y, self.receiver_in_direction)
         self.robot_arrival_event.setdefault(robot.robot_id, self.env.event()).succeed()
     def remove_first_robot_(self):
+        print(f'remove_first_robot_ called : {self.robot_order_} ->', end = " ")
         self.robot_order_.pop()
+        print(self.robot_order_)
     def remove_last_robot_(self):
         self.robot_order_.popleft()
     def remove_robot_(self, robot):
@@ -95,11 +129,14 @@ class QueueAreaController:
     def queue_size(self):
         return len(self.robot_order_)
     
+    def process_package(self, pkg_id, destination):
+        self.pckg_order.append((pkg_id, destination))
+    
     def process_path_request(self, commands, robot_id = None):
         # the part where queue takes charge of queueing requests to deliver packages
         # 1. wait till the robot is ready at the reciever
         # 2. call controller to add the commands with robot_id to pathes (during the tick or not)
-        print("process_path_request: ", commands, robot_id )
+        print(f"queue {self.receiver_id} process_path_request: ", commands, robot_id )
         if robot_id is None:
             # simply wait till some robot is in queue
             self.env.process(self.await_first_in_queue_to_command(commands))
@@ -110,11 +147,13 @@ class QueueAreaController:
     def await_first_in_queue_to_command(self, commands):
         request = self.queue_tile.container.get(1)
         yield request
-        self.robot_controller.assighn_path_to(self.get_first_in_queue.robot_id, commands)
-        yield self.queue_tile.container.release(request)
+        self.robot_controller.assighn_path_to(self.get_first_in_queue().robot_id, commands)
+        yield self.queue_tile.container.put(1)
         
     def await_robot_in_queue_to_command(self, robot_id, commands):
+        print("awaiting await_robot_in_queue_to_command")
         yield self.robot_arrival_event[robot_id]
+        print("awaiting await_robot_in_queue_to_command SUCCEED!")
         self.robot_controller.assighn_path_to(robot_id, commands)
 
 class RobotController:
@@ -155,9 +194,10 @@ class RobotController:
             self.queue_controllers[conv_id] = QueueAreaController(self.env, self, conv_id, receiver_d, self.map_, queue_path)
             
     
-    def __init__(self, env, map_, queues_init_file, robot_init_file, config_vars):
+    def __init__(self, env, map_, wms_, queues_init_file, robot_init_file, config_vars):
         self.env = env
         self.map_ = map_
+        self.wms_ = wms_
         self.init_file_path = robot_init_file
         self.queues_init_file = queues_init_file
         
@@ -182,28 +222,28 @@ class RobotController:
         self.robot_responses = np.array([]) # robot_o_id -> bool # has the response come
         self.robot_command_awaiting = np.array([]) # True when there was a command sent to a robot not yet finished
         
+        self.occupation_map_ = np.zeros((self.map_.tile_height*2, self.map_.tile_width*2))
+        # 0 - free, 1 - occupied with robot on current tick, 2 - occupied by command on next move        
         self.crete_robots_(load_robot_configuration(self.init_file_path))
         
         self.queue_controllers = dict() # receiver_id -> controller
         self.create_queue_controllers(load_queue_areas(self.queues_init_file))
         
-        self.occupation_map_ = np.zeros((self.map_.tile_height, self.map_.tile_width))
-        # 0 - free, 1 - occupied with robot on current tick, 2 - occupied by command on next move
         self.init_occupation_map()
         
     def init_occupation_map(self):
         for x in range(self.map_.tile_width):
             for y in range(self.map_.tile_height):
-                if self.map_.get(x,y).robot and self.map_.get(x,y).tile_class != TileClass.QUEUE_TILE:
+                if self.map_.get(x,y).robot:
                     self.occupation_map_[y, x] += 1
                     
     def update_state_by_responses(self):
         for robot_o_id in range(self.number_robots):
             if self.robot_responses[robot_o_id]: # if the action was just finished on this tick
+                print(f"robot {robot_o_id} finished action {self.current_commands_[robot_o_id]}, {self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} -> ", end = "")
                 if self.current_commands_[robot_o_id][0] == "move_forward":
                     d = self.robot_directions_[robot_o_id]
-                    if self.map_.get(*self.robot_positions_[robot_o_id]).tile_class != TileClass.QUEUE_TILE:
-                        self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] -=1
+                    self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] -=1
                     self.robot_positions_[robot_o_id] = (self.robot_positions_[robot_o_id][0] - (d%2)*(d - 2), self.robot_positions_[robot_o_id][1] + ((d+1)%2)*(d-1))
                     #self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] +=1
                 elif self.current_commands_[robot_o_id][0] == "turn":
@@ -211,6 +251,7 @@ class RobotController:
                         self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + 1)%4
                     else:
                         self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] - 1)%4
+                print(f"{self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} while real are {self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction}")
                 self.current_commands_[robot_o_id] = None
                     
     def get_robots_filling(self):
@@ -224,8 +265,7 @@ class RobotController:
     def assighn_robot_position(self, robot, x, y, d):
         self.robot_positions_[robot.robot_o_id] = (x,y)
         self.robot_directions_[robot.robot_o_id] = d
-        if self.map_.get(x,y).tile_class != TileClass.QUEUE_TILE:
-            self.occupation_map_[y, x] += 1
+        self.occupation_map_[y, x] += 1
         
     def assighn_path_to(self, robot_id, path):
         # and HERE we parse commands cause unfortunately we'll face a problem of possibly extending the path by rotaions which we'll have to do straight away
@@ -234,34 +274,50 @@ class RobotController:
         x,y,d = self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction
         self.pathes_[robot_o_id].extend(self.parse_wms_robot_commands(x,y,d, path))
     
+    def process_package(self, event):
+        receiver_id = event['conveyer_id']
+        self.queue_controllers[receiver_id].process_package(pkg_id = event['id'], destination = event['destination'])
+        
+    def process_queues(self):
+        for queue in self.queue_controllers.values():
+            queue.process_queue()
+    
     def process_wms_command(self, command):
         robot_id, receiver_id, command  = command['robot_id'], command['receiver_id'], command['command']
         if robot_id == None:
             # we suppose that the task is to drive a package - this task is to be performed by the queue controller
             if receiver_id:
-                self.self.queue_controllers[receiver_id].process_path_request(command)
+                self.queue_controllers[receiver_id].process_path_request(command)
             else:
                 # command to particularly controller or logger?
                 pass
-        elif receiver_id:
-            self.queue_controllers[receiver_id].process_path_request(command, robot_id)
         else:
             self.assighn_path_to(robot_id, command)
+            
+    def assighn_free_robots(self):
+        for robot_o_id in range(self.number_robots):
+            if len(self.pathes_[robot_o_id]) == 0 and not self.robots_[robot_o_id].blocked:
+                # then the robot is free and must do something productive
+                if self.robots_[robot_o_id].charge < 10:
+                    self.process_wms_command(self.wms_.send_robot_to_charge(self.robots_[robot_o_id]))
+                else:
+                    x,y = self.robot_positions_[robot_o_id]
+                    best_receiver = min(self.queue_controllers.items(), key = lambda queue: -len(queue[1].pckg_order)*10 + abs(queue[1].receiver_x - x) + abs(queue[1].receiver_y - y))
+                    self.process_wms_command(self.wms_.send_robot_to_queue(self.robots_[robot_o_id], best_receiver[1]))
     
     def update_state_by_command(self, r_o_id, command):
         r_x, r_y, d = self.robots_[r_o_id].position.x, self.robots_[r_o_id].position.y, self.robots_[r_o_id].direction
         # right before sending a command
         if command[0] == "move_forward":
             n_x, n_y = (r_x - (d%2)*(d - 2), r_y + ((d+1)%2)*(d-1))
-            assert self.occupation_map_[n_y, n_x] == 0 and self.map_.get(n_x, n_y).tile_class != TileClass.BLOCK
-            if self.map_.get(n_x, n_y).tile_class != TileClass.QUEUE_TILE:
-                self.occupation_map_[n_y, n_x] += 1
+            #assert self.occupation_map_[n_y, n_x] == 0 and self.map_.get(n_x, n_y).tile_class != TileClass.BLOCK
+            self.occupation_map_[n_y, n_x] += 1
         self.robot_command_awaiting[r_o_id] = True
         return True
             
     def send_robot_command_(self, robot_o_id, command_func_name, kwargs):
         if kwargs:
-            yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)(kwargs))
+            yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)(**kwargs))
         else:
             yield self.env.process(getattr(self.robots_[robot_o_id], command_func_name)())
         self.robot_responses[robot_o_id] = True
@@ -280,6 +336,9 @@ class RobotController:
         print(f"commands awaiting: {self.robot_command_awaiting}")
         print(f"robot responses: {self.robot_responses}")
         self.update_state_by_responses() # based on PREVIOUS commands which are stored in current_commands, robot_responses
+        self.process_queues() # update queues (add pathes to send packages)
+        self.assighn_free_robots() # the robots which have finished their task if they are not in queue must be sent to one or charger
+        
         self.update_current_commands() # we consider that dws and wms commands through tick HAVE ALREADY BEEN PROCESSED
         self.empty_robot_responses()
         print(f"robot commands to be sent now: {self.current_commands_}")
@@ -299,12 +358,12 @@ class RobotController:
         
     @classmethod
     def optimal_rotation(cls, start_d, end_d):
-        if abs((end_d-start_d)%4) <= 2:
-            #turn left
-            return [False]*(abs((end_d-start_d)%4))
-        else:
+        if (end_d-start_d + 4)%4 <= (start_d-end_d + 4)%4:
             #turn right
-            return [True]*(abs((start_d-end_d)%4))
+            return [True]*(abs((end_d-start_d)%4))
+        else:
+            #turn left
+            return [False]*(abs((start_d-end_d)%4))
     
     @classmethod
     def parse_wms_robot_commands(cls, robot_x, robot_y, robot_d, wms_commands):
@@ -325,7 +384,7 @@ class RobotController:
                     new_d = 3
                 elif new_x > prev_x:
                     new_d = 1
-                elif new_y > prev_y:
+                elif new_y < prev_y:
                     new_d = 0
                 else:
                     new_d = 2

@@ -4,7 +4,8 @@ import random
 import os
 from main.entities.post_map import PostMap
 from main.entities.logger import Logger
-from main.entities.actors import WMS_communicator, DWS_communicator
+from main.entities.actors import DWS_communicator
+from main.controllers.wms_controller import WMS_communicator
 from main.controllers.robot_controller import RobotController
 from main.tools.loaders import load_env_configuration
 
@@ -48,8 +49,9 @@ class EnvController:
                 
         self.env_ = simpy.Environment()
         self.map_ = PostMap(self.env_, self.MAP_CONFIG_PATH, **self.env_vars.get('map', {}))
-        self.robot_controller = RobotController(self.env_, self.map_, self.QUEUE_CONFIG_PATH, self.ROBOT_CONFIG_PATH, config_vars = self.env_vars)
-        self.wms_ = WMS_communicator(map_controller=self.robot_controller, input_type=self.WMS_CONTROLLER_TYPE, fpath = self.WMS_CONFIG_PATH, server=self.WMS_CONTROLLER_PORT)
+        self.robot_controller = RobotController(self.env_, self.map_, None, self.QUEUE_CONFIG_PATH, self.ROBOT_CONFIG_PATH, config_vars = self.env_vars)        
+        self.wms_ = WMS_communicator(map_controller=self.map_, input_type=self.WMS_CONTROLLER_TYPE, fpath = self.WMS_CONFIG_PATH, server=self.WMS_CONTROLLER_PORT, logpath = self.env_vars.get('logger', dict()).get("LOGGER_OUT_PATH"))
+        self.robot_controller.wms_ = self.wms_
         self.dws_ = DWS_communicator(input_type = self.DWS_CONTROLLER_TYPE, fpath = self.DWS_CONFIG_PATH, server=self.DWS_CONTROLLER_PORT) # not actually file but path to dir where shelve is stored
         self.logger_ = Logger(self, **self.env_vars.get('logger', {}))
         self.pre_setup()
@@ -77,9 +79,7 @@ class EnvController:
         print(f"Environment tick: {self.env_.now}")
         self.logger_.log_obs_event(self.robot_controller)
         for event in self.dws_.receive_tick_events(self.current_tick):
-            command = self.wms_.receive_message(event)
-            print("received wms command: ",command)
-            self.robot_controller.process_wms_command(command)
+            self.robot_controller.process_package(event)
             
         self.robot_controller.make_routine_loop()
         yield self.env_.timeout(1)
@@ -98,4 +98,4 @@ if __name__ == "__main__":
     env_controller = EnvController(sim_config_file_path = r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\var_config.json")
     #env_controller.map_.show()
     
-    env_controller.run(max_duration = 14)
+    env_controller.run(max_duration = 50)
