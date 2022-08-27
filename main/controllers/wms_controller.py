@@ -5,6 +5,14 @@ import os
 from datetime import datetime
 from main.entities.post_map import TileClass
 
+def jsonKeys2int(x):
+    if isinstance(x, dict):
+        try:
+            return {int(k):v for k,v in x.items()}
+        except:
+            return x
+    return x
+
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -12,33 +20,37 @@ class NumpyArrayEncoder(JSONEncoder):
         return JSONEncoder.default(self, obj)
 
 class GraphMap:
-    def __init__(self, map_controller, save_dir):
+    def __init__(self, map_controller, save_dir = None):
         self.map_controller = map_controller
         self.map_graph = [] #list of sets
         self.shortest_pathes = []
-        self.next_tiles = []
-        self.file_path = os.path.join(os.path.normpath(save_dir), "graphmap.json")
+        self.next_tiles = dict()
+        self.prev_tiles = dict()
+        if save_dir is None:
+            # load default
+            self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.normpath("..\\..\\data\\simulation_data\\default\\graphmap.json"))
+        else:
+            self.file_path = os.path.join(os.path.normpath(save_dir), "graphmap.json")
         self.number_nodes = self.map_controller.size
         
         if os.path.exists(os.path.normpath(self.file_path)):
             self.load_from_file(self.file_path)
-            if self.map_graph == [] or self.wanted_tiles == []:
+            if len(self.map_graph) == 0 or len(self.wanted_tiles) == 0:
                 self.init_map_graph()
-                self.save_state()
-            if self.shortest_pathes == [] or self.next_tiles == []:
+            if len(self.shortest_pathes) == 0 or len(self.next_tiles) == 0:
                 self.count_shortest_pathes()
-                self.save_state()
         else:
             self.init_map_graph()
-            self.count_shortest_pathes()   
+            self.count_shortest_pathes()  
             self.save_state()
        
     def load_from_file(self, file_path):
         with open(file_path, "r") as file:
-            f = json.load(file)
+            f = json.load(file, object_hook=jsonKeys2int)
             self.map_graph = f.get("map_graph", [])
             self.shortest_pathes = np.asarray(f.get("shortest_pathes",[]))
-            self.next_tiles = np.asarray(f.get("next_tiles", []))
+            self.next_tiles = f.get("next_tiles", dict())
+            self.prev_tiles = f.get("prev_tiles", dict())
             self.wanted_tiles = f.get("wanted_tiles", [])
         print(f"{datetime.now().strftime('%H:%M:%S')}: wms controller successfully loaded")
     def save_state(self):
@@ -46,6 +58,7 @@ class GraphMap:
             json.dump({"map_graph" : self.map_graph, 
                        "shortest_pathes" : self.shortest_pathes, 
                        "next_tiles" : self.next_tiles, 
+                       "prev_tiles" : self.prev_tiles,
                        "wanted_tiles" : self.wanted_tiles}, f, cls=NumpyArrayEncoder)
         
     def init_map_graph(self):
@@ -76,28 +89,55 @@ class GraphMap:
                     self.wanted_tiles.append(id_)
         self.save_state()
         
-    def build_in_width(self, start_id, visited, current_level, depth = 1):
+    def count_pathes_from(self, tile_id):
+        visited = [False]*self.number_nodes
+        visited[tile_id] = True
+        current_level = {tile_id}
+        depth = 1
+        prev_tiles = self.prev_tiles[tile_id]
         while len(current_level) > 0:
             next_level = set()
             for node in current_level:
                 for neigbour in self.map_graph[node]:
                     if not visited[neigbour]:
-                        self.shortest_pathes[start_id][neigbour] = depth
-                        self.next_tiles[start_id][neigbour] = node
+                        self.shortest_pathes[tile_id][neigbour] = depth
+                        prev_tiles[neigbour] = node
                         visited[neigbour] = True
                         next_level.add(neigbour)
             depth+=1
             current_level = next_level
         
-    def count_pathes_from(self, tile_id):
-        visited = [False]*self.number_nodes
-        visited[tile_id] = True
-        current_level = {tile_id}
-        self.build_in_width(tile_id, visited, current_level, depth=1)
-        
     def count_pathes_to(self, tile_id, reversed_map_graph):
         visited = [False]*self.number_nodes
         visited[tile_id] = True      
+        current_level = {tile_id}
+        depth = 1
+        next_tiles = self.next_tiles[tile_id]
+        while len(current_level) > 0:
+            next_level = set()
+            for node in current_level:
+                for neigbour in reversed_map_graph[node]:
+                    if not visited[neigbour]:
+                        self.shortest_pathes[neigbour][tile_id] = depth
+                        next_tiles[neigbour] = node
+                        visited[neigbour] = True
+                        next_level.add(neigbour)
+            depth+=1
+            current_level = next_level
+        
+    def get_reversed_map_graph(self):
+        reversed_map_graph = [[] for i in range(self.number_nodes)]
+        for node in range(self.number_nodes):
+            for neig in self.map_graph[node]:
+                reversed_map_graph[neig].append(node) 
+        return reversed_map_graph
+    
+    def count_pathes_to_(self, tile_id, reversed_map_graph):
+        next_tiles = [-1]*self.number_nodes
+        shortest_pathes = [-1]*self.number_nodes
+        visited = [False]*self.number_nodes
+        visited[tile_id] = True  
+        shortest_pathes[tile_id] = 0
         current_level = {tile_id}
         depth = 1
         while len(current_level) > 0:
@@ -105,28 +145,27 @@ class GraphMap:
             for node in current_level:
                 for neigbour in reversed_map_graph[node]:
                     if not visited[neigbour]:
-                        self.shortest_pathes[neigbour][tile_id] = depth
-                        self.next_tiles[neigbour][tile_id] = node
+                        shortest_pathes[neigbour] = depth
+                        next_tiles[neigbour] = node
                         visited[neigbour] = True
                         next_level.add(neigbour)
             depth+=1
-            current_level = next_level
+            current_level = next_level   
+        return shortest_pathes, next_tiles
         
     def count_shortest_pathes(self):
         # with floid algorithm let's count shortest pathes (maybe i'll even save that into a seperate file for speed)
         number_tiles = len(self.map_graph)
         self.shortest_pathes = np.array([[-1]*number_tiles for _ in range(number_tiles)])
-        self.next_tiles = np.array([[-1]*number_tiles for _ in range(number_tiles)])
+        self.next_tiles = dict([(key, [-1]*number_tiles) for key in self.wanted_tiles])
+        self.prev_tiles = dict([(key, [-1]*number_tiles) for key in self.wanted_tiles])
         # presetup the shortest pathes with edge
         for i in range(number_tiles):
             self.shortest_pathes[i, i] = 0
-            self.next_tiles[i, i] = i
-            
-        reversed_map_graph = [[] for i in range(self.number_nodes)]
-        for node in range(self.number_nodes):
-            for neig in self.map_graph[node]:
-                reversed_map_graph[neig].append(node)
-        
+        for i in self.wanted_tiles:
+            self.next_tiles[i][i] = i
+            self.prev_tiles[i][i] = i
+        reversed_map_graph = self.get_reversed_map_graph()
         num_worked_on = 0
         d = len(self.wanted_tiles)//10
         for tile in self.wanted_tiles:
@@ -136,7 +175,7 @@ class GraphMap:
             if num_worked_on%d == 0:
                 print(f"finished sorting tiles on {num_worked_on/d*10}%")
         del reversed_map_graph
-        self.save_state()
+        
     def tile2id(self, tile):
         return tile.y*self.map_controller.tile_width + tile.x
     def id2coords(self, tile_id):
@@ -147,17 +186,27 @@ class GraphMap:
         return self.shortest_pathes[id_start, id_end]
     
     def get_shortest_path_(self, id_start, id_end):
-        if self.next_tiles[id_start, id_end] == -1:
-            return None # there is no path
+        max_n = self.shortest_pathes[id_start][id_end]
+        if id_start in self.wanted_tiles:
+            # then we move FROM id_start - therefore we look at row [id_start] and move backwards
+            id_cur = id_end
+            path = [0]*max_n #[0 for _ in range(self.shortest_pathes[id_start, id_end])]
+            prev_tiles =  self.prev_tiles[id_start]
+            for i in range(max_n-1, -1, -1):
+                path[i] = (0, self.id2coords(id_cur))
+                id_cur = prev_tiles[id_cur]
+        elif id_end in self.wanted_tiles:
+            # then we move TO id_end - therefore we take column [id_end] and move forward
+            next_tiles = self.next_tiles[id_end]
+            id_cur = next_tiles[id_start]
+            path = [0]*max_n #[0 for _ in range(self.shortest_pathes[id_start, id_end])]
+            for i in range(max_n):
+                path[i] = (0, self.id2coords(id_cur))
+                id_cur = next_tiles[id_cur]
         else:
-            id_cur = self.next_tiles[id_start, id_end]
-            path = []#[0 for _ in range(self.shortest_pathes[id_start, id_end])]
-            while id_cur != id_end:
-                path.append((0, self.id2coords(id_cur)))
-                id_cur = self.next_tiles[id_cur, id_end]
-            path.append((0, self.id2coords(id_cur)))
-            print(f"controller built path from {self.id2coords(id_start)} to {self.id2coords(id_end)}: {path}")
-            return path  
+            path = []
+        #print(f"controller built path from {self.id2coords(id_start)} to {self.id2coords(id_end)}: {path}")
+        return path  
         
     def get_shortest_path(self, tile_start, tile_end):
         """returns path already in format [(0, (x,y)), ...] or None if path doesn't exist"""
@@ -167,7 +216,7 @@ class GraphMap:
 
 class WMS_communicator:
     SYSTEM_TYPES = ['SERVER', 'FROM_FILE', 'DEFINE']
-    def __init__(self, map_controller, input_type = 'DEFINE', fpath = None, server = None, logpath = None, **kwargs):
+    def __init__(self, map_controller, input_type = 'DEFINE', fpath = None, server = None, logpath = None, GRAPH_SAVE_MAP = None, **kwargs):
         assert input_type in WMS_communicator.SYSTEM_TYPES
         self.input_type = input_type
         self.fpath = fpath
@@ -176,7 +225,7 @@ class WMS_communicator:
         
         self.graph_map = None
         if self.input_type == 'DEFINE':
-            self.graph_map = GraphMap(self.map_controller, logpath)
+            self.graph_map = GraphMap(self.map_controller, GRAPH_SAVE_MAP)
                         
     def receive_message(self, event):
         print("nameless receive is called")
@@ -196,22 +245,10 @@ class WMS_communicator:
         else:
             start_tile = robot.position
         # choose the closest one from potential
-        end_tile = min([dest.send_from_tile for dest in self.map_controller.destinations[destination]], lambda p_end_tile: self.graph_map.shortest_path_length(start_tile, p_end_tile))
-        
+        end_tile = min(self.map_controller.destinations[destination], key = lambda x: self.graph_map.shortest_path_length(start_tile, x.send_from_tile)).send_from_tile
         rec_pkg = (1, (receiver_id, pkg_id))
         del_pkg = (2, (receiver_id, pkg_id))
         return {'robot_id' : robot.robot_id, 'receiver_id' : receiver_id, 'command' : [rec_pkg,*self.build_path_between_tiles(start_tile, end_tile), del_pkg]}
-    
-        """
-        # for robot example
-        robot_id = 'rob_0'
-        cur_x, cur_y = self.map_controller.get_robot_coordinates_by_id(robot_id)
-        rec_pkg = (1, (receiver_id, pkg_id))
-        move_1 = (0, (cur_x + 1, cur_y))
-        move_2 = (0, (cur_x, cur_y))
-        del_pkg = (2, (receiver_id, pkg_id))
-        return {'robot_id' : robot_id, 'receiver_id' : None, 'command' : [rec_pkg,move_1, move_2, del_pkg]}
-        """
         
     def build_path_between_tiles(self, tile_start, tile_end):
         return self.graph_map.get_shortest_path(tile_start, tile_end)
@@ -227,3 +264,12 @@ class WMS_communicator:
         
     def send_robot_to_charge(self, robot):
         pass
+   
+from main.entities.post_map import PostMap 
+import simpy
+if __name__ == "__main__":
+    map_file_path=r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\map_v0.xml"
+    map_ = PostMap(simpy.Environment(), map_file_path = map_file_path)
+    grapg_map = GraphMap(map_, r'E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0')
+    #grapg_map.count_shortest_pathes()
+    #grapg_map.save_state()

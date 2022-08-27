@@ -1,7 +1,7 @@
 import simpy 
 import datetime
 import random
-from main.tools.loaders import load_map_configuration
+from main.tools.loaders import load_map_configuration, load_destination_configuration
 from enum import Enum
 import os, sys
 import numpy as np
@@ -157,22 +157,63 @@ class StationTile(QueueTile):
         self.station_id = station_id
         self.queue_controller = queue_controller
         self.receive_package_direction = receive_package_direction
+        self.tile_class = TileClass.STATION_TILE
+        
+        self.printing_events = True
     
     def request_move_in(self, robot):
         if self.printing_events:
             print(f"robot {robot.robot_id} requests to move in the sorting tile")
-        yield self.container.get(1)
+        yield self.container.put(1)
+        self.robot = robot
         self.queue_controller.receiver_move_in(robot) 
+        if self.printing_events:
+            print(f"robot {robot.robot_id} moved in the sorting tile {self.station_id}")
+    
+    def request_move_out(self, robot):
+        if self.printing_events:
+            print(f"robot {robot.robot_id} requests to move out of ({self.x}, {self.y})")
+        yield self.container.get(1)
+        self.robot = None
+        self.queue_controller.receiver_move_out()
         
     def init_move_in(self, robot):
         if self.printing_events:
             print(f"robot {robot.robot_id} is initially moved to receiver in ({self.x}, {self.y})")
         self.robot = robot
         self.container = simpy.resources.container.Container(self.env, self.queue_size, init = self.container.level + 1)    
-        self.queue_controller.receiver_move_in(robot)  
+        self.queue_controller.receiver_move_in(robot)
+    def init_move_out(self, robot):
+        if self.printing_events:
+            print(f"robot {robot.robot_id} is forcefully removed from ({self.x}, {self.y})")
+        self.robot = None
+        self.container = simpy.resources.container.Container(self.env, 1, init = 0)   
+        self.queue_controller.receiver_move_out()
+ 
+class DestinationHolder:
+    def __init__(self, map_, start_config_path = "..\\..\\data\\simulation_data\\default\\destinations.xml"):
+        self.map_ = map_
+        self.start_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.normpath(start_config_path))
+        self.place_to_destinations = dict() # place_id -> list of TILES
+        self.load(config_path = self.start_config_path)
         
+    def load(self, config_path): 
+        destinations = load_destination_configuration(config_path)
+        self.set_destinations(destinations)
+        
+    def set_destinations(self, destinations):
+        for key in self.place_to_destinations.keys():
+            self.place_to_destinations[key] = []
+        for dest in destinations:
+            # id -> id of destination tile (basically number of tiles) like D***, place_id -> id of destination like 'M1021' or smth
+            # id is number same as destination tile id, place_id is id of the destination, is a string
+            id_, place_id = dest["id"], dest["place_id"]
+            self.place_to_destinations.setdefault(place_id, []).append(self.map_.destination_tiles[id_]) 
+    def __getitem__(self, key):
+        return self.place_to_destinations.get(key, [])
+    
 class PostMap:
-    def __init__(self, env, map_file_path = "..\\..\\data\\simulation_data\\map.xml"):
+    def __init__(self, env, map_file_path = "..\\..\\data\\simulation_data\\default\\map.xml", destination_file_path = "..\\..\\data\\simulation_data\\default\\destinations.xml"):
         self.env = env
         self.left_shift_ = 0
         self.up_shift_ = 0
@@ -181,6 +222,9 @@ class PostMap:
         self.tile_type_map_ = np.array([[],])
         self.tile_map = [[],]
         self.printing_events = False
+        self.destinations = None
+        self.destination_tiles = dict()
+        self.destination_file_path = destination_file_path
         # loading file and defining type map as well as some parameters
         self.load(map_file_path)
         
@@ -192,10 +236,10 @@ class PostMap:
         
     def load(self, file_path):
         tree = load_map_configuration(file_path)
-        # keys are ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas', '#attributes', 'destinations', 'sendingareas']
+        # keys are ['mapcells', 'mapcells-attrs', 'stations', 'virtualstations', 'chargers', 'sortingareas', '#attributes', 'destiantions', 'sendingareas']
         
         for attr_name_, attr_val_ in tree['#attributes'].items():
-            self.__dict__[attr_name_] = float(attr_val_)
+            setattr(self, attr_name_, float(attr_val_))
          
         self.tile_type_map_ = np.array([[int(x) for x in line.split(",") if x.strip()!=""] for line in tree['mapcells'].split("\n")])
         assert self.tile_type_map_.shape[::-1] == tuple(map(int, (tree['mapcells-attrs']['length'], tree['mapcells-attrs']['width'])))     
@@ -252,13 +296,14 @@ class PostMap:
         
         self.sending_areas = dict() #id -> tile
         direct2num = {"n" : 0, "e" : 1, "s" : 2, "w" : 3}
-        self.destinations = dict()
+        self.destination_tiles = dict()
         for destination in tree["destinations"]:
             dest_id, x, y = destination["id"], int(destination["locationx"]), int(destination["locationy"])
             x,y = self.log_coords2new(x, y)
             self.get(x,y).tile_class = TileClass.DESTINATION
             self.get(x,y).dest_id = dest_id
-            self.destinations.setdefault(dest_id, []).append(self.get(x,y))        
+            self.destination_tiles[dest_id] = self.get(x,y)
+        self.destinations = DestinationHolder(self, self.destination_file_path)
         for send_area in tree["sendingareas"]:
             area_id, x, y, d = send_area['areaid'], int(send_area['x']), int(send_area['y']), direct2num[send_area["send_direction"]]
             x,y = self.log_coords2new(x, y)

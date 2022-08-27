@@ -1,0 +1,26 @@
+{
+    "sim": {
+        "NAME": "sim_v0",
+        "START_TIME": null,
+        "END_TIME": "2011-11-04T09:30:00",
+        "ONE_TICK": 1,
+        "MAP_CONFIG_PATH": "map_v0.xml",
+        "ROBOT_CONFIG_PATH": "robots_v0.xml",
+        "QUEUE_CONFIG_PATH": "queue_v0.xml",
+        "WMS_CONTROLLER_TYPE": "DEFINE",
+        "WMS_CONTROLLER_PORT": null,
+        "DWS_CONTROLLER_TYPE": "FROM_FILE",
+        "DWS_CONTROLLER_PORT": null,
+        "DWS_CONFIG_PATH": "dws_conf2"
+    },
+    "robot": {
+        "TAKING_PACKAGE_TIMEOUT": 2,
+        "MOVING_ONE_TILE_TIMEOUT": 1,
+        "TURNING_ONE_TIMEOUT": 1,
+        "SENDING_PACKAGE_TIMEOUT": 2
+    },
+    "logger": {
+        "LOGGER_OUT_PATH": "E:\\E\\Copy\\PyCharm\\RoboPost\\PostSimulation\\data\\logs\\sim_v0",
+        "IS_LOGGING": false
+    }
+}

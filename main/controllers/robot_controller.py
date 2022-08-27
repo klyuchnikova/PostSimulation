@@ -83,20 +83,21 @@ class QueueAreaController:
         2) has robot ready
         Then asks robot controller to build path
         """
-        if self.receiver_tile.robot is not None and len(self.pathes_[self.receiver_tile.robot.robot_o_id]) == 0:
-            self.receiver_tile.robot.blocked = True # so that robot controller will understand that this robot must not be moved
-            if len(self.pckg_order) > 0:
-                print(f"{self.env.time}: receiver {self.receiver_id} is sending package")
-                pckg_id, destination = self.pckg_order.popleft()
-                command = self.wms_.build_path(self.receiver_tile.robot, self.receiver_id, pckg_id, destination)
-                self.receiver_tile.robot.blocked = False
-                self.robot_controller.process_wms_command(command)
+        #if self.receiver_tile.robot is not None and self.robot_controller.is_robot_free(self.receiver_tile.robot.robot_o_id):
+        #   self.receiver_tile.robot.blocked = True # so that robot controller will understand that this robot must not be moved
+        if len(self.pckg_order) > 0:
+            pckg_id, destination = self.pckg_order.popleft()
+            print(f"{self.env.now}: receiver {self.receiver_id} is sending package {pckg_id} to {destination}")
+            command = self.robot_controller.wms_.build_path(self.receiver_tile.robot, self.receiver_id, pckg_id, destination)
+            self.receiver_tile.robot.blocked = False
+            self.robot_controller.process_wms_command(command)
             
     def receiver_move_in(self, robot):
         """ this is the function triggered when a robot enters receiver. 
         what we need to do is check whether the robot has finished moving and therefore ready to take package """
-        if len(self.pathes_[robot.robot_o_id]) == 0:
-            self.robot_ready = True
+        self.robot_ready = True
+    def receiver_move_out(self):
+        self.robot_ready = False
         
     def move_in_robot_(self, robot, tile):
         # robot must already be on the tile inside Queue area
@@ -130,6 +131,7 @@ class QueueAreaController:
         return len(self.robot_order_)
     
     def process_package(self, pkg_id, destination):
+        print(f"{self.env.now}: receiver {self.receiver_id} received package {pkg_id} to be sent to {destination}")
         self.pckg_order.append((pkg_id, destination))
     
     def process_path_request(self, commands, robot_id = None):
@@ -256,7 +258,7 @@ class RobotController:
                     
     def get_robots_filling(self):
         # returns boolean vector of size robot_number, true means the robot has a package, false - it doesn't
-        return list(map(lambda robot: (robot.containing_package_id is None), self.robots_))
+        return list(map(lambda robot: (robot.containing_package_id is not None), self.robots_))
     
     def get_robot_coordinates_by_id(self, robot_id):
         robot = self.robots_[self.robot_id2order[robot_id]]
@@ -272,7 +274,9 @@ class RobotController:
         # this method is eventually called if robot receives any new commands
         robot_o_id = self.robot_id2order[robot_id] 
         x,y,d = self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction
+        print(f"assighn path {self.pathes_[robot_o_id]} -> ",end = "")
         self.pathes_[robot_o_id].extend(self.parse_wms_robot_commands(x,y,d, path))
+        print(self.pathes_[robot_o_id])
     
     def process_package(self, event):
         receiver_id = event['conveyer_id']
@@ -296,14 +300,18 @@ class RobotController:
             
     def assighn_free_robots(self):
         for robot_o_id in range(self.number_robots):
-            if len(self.pathes_[robot_o_id]) == 0 and not self.robots_[robot_o_id].blocked:
-                # then the robot is free and must do something productive
-                if self.robots_[robot_o_id].charge < 10:
-                    self.process_wms_command(self.wms_.send_robot_to_charge(self.robots_[robot_o_id]))
+            if not self.robot_command_awaiting[robot_o_id] and len(self.pathes_[robot_o_id]) == 0 and not self.robots_[robot_o_id].blocked:
+                if self.robots_[robot_o_id].position.tile_class != TileClass.STATION_TILE:
+                    # then the robot is free and must do something productive
+                    if self.robots_[robot_o_id].charge < 10:
+                        self.process_wms_command(self.wms_.send_robot_to_charge(self.robots_[robot_o_id]))
+                    else:
+                        x,y = self.robot_positions_[robot_o_id]
+                        best_receiver = min(self.queue_controllers.items(), key = lambda queue: -len(queue[1].pckg_order)*10 + abs(queue[1].receiver_x - x) + abs(queue[1].receiver_y - y))
+                        self.process_wms_command(self.wms_.send_robot_to_queue(self.robots_[robot_o_id], best_receiver[1]))
                 else:
-                    x,y = self.robot_positions_[robot_o_id]
-                    best_receiver = min(self.queue_controllers.items(), key = lambda queue: -len(queue[1].pckg_order)*10 + abs(queue[1].receiver_x - x) + abs(queue[1].receiver_y - y))
-                    self.process_wms_command(self.wms_.send_robot_to_queue(self.robots_[robot_o_id], best_receiver[1]))
+                    # robot is ready to send a package
+                    self.robots_[robot_o_id].position.queue_controller.process_queue()
     
     def update_state_by_command(self, r_o_id, command):
         r_x, r_y, d = self.robots_[r_o_id].position.x, self.robots_[r_o_id].position.y, self.robots_[r_o_id].direction
@@ -333,15 +341,15 @@ class RobotController:
                 self.env.process(self.send_robot_command_(robot_o_id, self.current_commands_[robot_o_id][0], self.current_commands_[robot_o_id][1]))
                 
     def make_routine_loop(self):
-        print(f"commands awaiting: {self.robot_command_awaiting}")
-        print(f"robot responses: {self.robot_responses}")
+        #print(f"commands awaiting: {self.robot_command_awaiting}")
+        #print(f"robot responses: {self.robot_responses}")
         self.update_state_by_responses() # based on PREVIOUS commands which are stored in current_commands, robot_responses
-        self.process_queues() # update queues (add pathes to send packages)
+        # self.process_queues() # update queues (add pathes to send packages)
         self.assighn_free_robots() # the robots which have finished their task if they are not in queue must be sent to one or charger
         
         self.update_current_commands() # we consider that dws and wms commands through tick HAVE ALREADY BEEN PROCESSED
         self.empty_robot_responses()
-        print(f"robot commands to be sent now: {self.current_commands_}")
+        #print(f"robot commands to be sent now: {self.current_commands_}")
         self.send_current_commands()
 
     def update_current_commands(self):
@@ -355,6 +363,9 @@ class RobotController:
         self.robot_responses.fill(False)
     def empty_current_commands(self):
         self.current_commands_.fill(None)
+        
+    def is_robot_free(self, robot_o_id):
+        return len(self.pathes_[robot_o_id]) == 0
         
     @classmethod
     def optimal_rotation(cls, start_d, end_d):

@@ -25,6 +25,10 @@ def load_map_configuration(fpath):
     map_dom['sendingareas'] = [xmldom2dict(elem)['sendingarea'] for elem in doc.getElementsByTagName('sendingarea')]
     return map_dom
 
+def load_destination_configuration(fpath):
+    doc = minidom.parse(fpath)
+    return [xmldom2dict(elem)['destination'] for elem in doc.getElementsByTagName('destination')]
+
 def load_robot_configuration(fpath):
     doc = minidom.parse(fpath)
     return [xmldom2dict(robot)['robot'] for robot in doc.getElementsByTagName('robot')]
@@ -61,3 +65,7 @@ def load_dws_configuration(fpath):
     fpath = os.path.join(fpath, os.path.split(fpath)[1])
     with shelve.open(fpath) as log_wms_file:
         return dict(map(lambda x: (datetime.fromisoformat(x[0]),x[1]), log_wms_file.items()))
+    
+if __name__ == "__main__":
+    data = load_destination_configuration("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\default\destinations.xml")
+    print(data)

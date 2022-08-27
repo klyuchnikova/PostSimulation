@@ -116,5 +116,8 @@ class DWS_communicator:
         return self.events_.get(datetime_moment, [])
     
     def receive_tick_events(self, tick_id):
-        return self.tick_events_[tick_id]
+        if tick_id < len(self.tick_events_):
+            return self.tick_events_[tick_id]
+        else:
+            return []
     

@@ -11,6 +11,7 @@ import time
 from PIL import Image
 import numpy as np
 import colorsys
+from tqdm import tqdm
 
 def shift_hue(image, hout = None, light_coeff = None, saturation_coeff = None):
     hsv = np.array(image.convert('HSV').getdata())
@@ -50,12 +51,12 @@ class LabelBlock:
         self.bg = pygame.Rect(0, 0, *self.box_size)
         self.value_row_texts[0] = sim_name
         self.value_row_texts[1] = "0"
-        self.value_row_texts[2] = self.START_TIME.isoformat()
+        self.value_row_texts[2] = self.START_TIME.strftime("%d/%m/%Y, %H:%M:%S")
         self.number_frames = int(((self.END_TIME - self.START_TIME).total_seconds() + self.ONE_TICK - 1)//self.ONE_TICK)
     
     def draw(self, frame_id):
         self.value_row_texts[1] = str(frame_id)
-        self.value_row_texts[2] = (self.START_TIME + timedelta(seconds = frame_id*self.ONE_TICK)).isoformat()
+        self.value_row_texts[2] = (self.START_TIME + timedelta(seconds = frame_id*self.ONE_TICK)).strftime("%d/%m/%Y, %H:%M:%S")
         
         pygame.draw.rect(self.win, self.bg_color, self.bg)     
         for i in range(self.number_rows):
@@ -136,7 +137,7 @@ class MapBlock:
         self.draw_pictured_tiles()
 
 class Aimator:
-    def __init__(self, obs_config_path, robot_config_path, mid_frames = 1, show_window = False):
+    def __init__(self, obs_config_path, robot_config_path, mid_frames = 5, show_window = False):
         if not show_window:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
@@ -146,12 +147,13 @@ class Aimator:
         self.obs_config_path = obs_config_path
         self.robot_config_path = robot_config_path
         self.mid_frames = mid_frames #one move will be displayed in mid_frames cadres
-        self.fps = 0
+        self.fps = 60 # considering one tick duration = 1 second, mid_frames = 5 this is optional
         self.label_controller = LabelBlock()
         self.map_controller = MapBlock()
         
         self.win_color = (52, 137, 235)
-        self.robot_color = (0, 255, 0)
+        self.robot_color = (0,250,154)
+        self.package_color = (199,21,133)
         self.load_start_configs(self.obs_config_path)
         self.load_robot_config(self.robot_config_path)
         
@@ -167,13 +169,14 @@ class Aimator:
         "ONE_TICK" : env_controller.ONE_TICK
         </obs>
         """
-        self.sim_name = os.path.split(obs_config_path)[1].split("_")[0]
+        f_name = os.path.split(obs_config_path)[1]
+        self.sim_name = f_name[:f_name.rfind("_obs_map")]
         doc = minidom.parse(obs_config_path).getElementsByTagName("obs")[0]
         for var in ["START_TIME", "END_TIME", "ONE_TICK"]:
             setattr(self.label_controller, var, doc.getElementsByTagName(var)[0].firstChild.nodeValue)
         self.label_controller.START_TIME = datetime.fromisoformat(self.label_controller.START_TIME)
         self.label_controller.END_TIME = datetime.fromisoformat(self.label_controller.END_TIME)
-        self.label_controller.ONE_TICK = int(self.label_controller.ONE_TICK)
+        self.label_controller.ONE_TICK = float(self.label_controller.ONE_TICK)
         self.label_controller.pre_setup(self.sim_name)
         
         self.map_controller.map_classes = []
@@ -213,7 +216,8 @@ class Aimator:
         
         self.number_frames = self.label_controller.number_frames
         self.robot_radius = self.map_controller.tile_pix_height//2*0.8
-        self.one_pause = int(60*self.label_controller.ONE_TICK//self.mid_frames)
+        self.one_pause = self.label_controller.ONE_TICK/self.mid_frames
+        self.fps = int(self.fps/5*self.label_controller.ONE_TICK*self.mid_frames)
         
     def get_robot_frame(self, frame_id):
         self.cur.execute(f'SELECT * FROM robot_positions WHERE frame_id={frame_id}')
@@ -235,6 +239,9 @@ class Aimator:
         x, y = 0, -(self.map_controller.tile_with_borders_size[0]//2 - 2)
         x, y = cos_phi*x - sin_phi*y, sin_phi*x + cos_phi*y
         pygame.draw.line(self.map_controller.win, (0, 0, 0), center, end_pos = (center[0] + x, center[1] + y) , width = 5)
+        if has_pckg:
+            pygame.draw.circle(self.map_controller.win, (0, 0, 0), center, self.robot_radius//2 + 2)
+            pygame.draw.circle(self.map_controller.win, self.package_color, center, self.robot_radius//2)
     
     def draw_background(self, frame_id):
         self.map_controller.draw(frame_id)
@@ -256,8 +263,9 @@ class Aimator:
         for mid_frame in range(self.mid_frames):
             self.draw_background(frame_id)
             for writing in new_positions:
-                # example: (0, 0, 'rob_0', 5, 15, 1, 'True')
+                # example: (0, 0, 'rob_0', '5', '15', '1', 'True')
                 robot_id, x, y, d, has_package = writing[2:]
+                x, y, d = int(x), int(y), int(d)
                 has_package = (has_package == "True")
                 x, y = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1]
                 old_x, old_y, old_d = self.robots.get(robot_id, (x, y, d))
@@ -269,9 +277,10 @@ class Aimator:
                 self.draw_robot(robot_id, x*k + old_x*(1-k), y*k + old_y*(1-k), d*k + old_d*(1-k), has_package)
             self.win.blit(self.map_controller.win, self.map_controller.shifts)
             self.draw_update()
-            self.clock.tick(60)
+            self.clock.tick(3600/self.fps)
         for writing in new_positions:
-            robot_id, x, y, d, has_package = writing[2:] 
+            robot_id, x, y, d, has_package = writing[2:]
+            x, y, d = int(x), int(y), int(d)
             self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d
         
     def show(self):
@@ -291,7 +300,7 @@ class Aimator:
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit(); 
             self.draw(frame_id)
-            time.sleep(0.1)
+            #time.sleep(0.1)
             frame_id += 1
         self.robots = dict()
         while True:
@@ -303,7 +312,11 @@ class Aimator:
         # we have previous positions in dict (robot id to position) and therefore need to make a few cadres
         # to do that we need to find those which locations have changed
         new_positions = self.get_robot_frame(frame_id)
-        clock = pygame.time.Clock()
+        
+        if len(new_positions) == 0:
+            self.number_frames = frame_id
+            return        
+        
         for mid_frame in range(self.mid_frames):
             self.draw_background(frame_id)
             if len(new_positions) == 0:
@@ -312,6 +325,7 @@ class Aimator:
             for writing in new_positions:
                 # example: (0, 0, 'rob_0', 5, 15, 1, 'True')
                 robot_id, x, y, d, has_package = writing[2:]
+                x, y, d = int(x), int(y), int(d)
                 has_package = (has_package == "True")
                 x, y = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1]
                 old_x, old_y, old_d = self.robots.get(robot_id, (x, y, d))
@@ -329,9 +343,9 @@ class Aimator:
             self.images.append(imageio.imread(fpath))
             
             cadre += 1
-            #self.clock.tick(60)
         for writing in new_positions:
-            robot_id, x, y, d, has_package = writing[2:] 
+            robot_id, x, y, d, has_package = writing[2:]
+            x,y,d = int(x), int(y), int(d)
             self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d   
         return cadre
             
@@ -349,7 +363,7 @@ class Aimator:
         while frame_id < self.number_frames:
             cadre = self.draw_zip(frame_id, dpath, cadre)
             frame_id += 1
-        imageio.mimsave(fpath, self.images)
+        imageio.mimsave(fpath, self.images, fps=self.fps)
         print(f"{datetime.now().strftime('%H:%M:%S')}: result saved to {fpath}")
         self.robots = dict()
         self.images = []
@@ -366,10 +380,10 @@ class Aimator:
         self.map_controller.mark(x, y)
     
 if __name__ == "__main__":
-    anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_map.xml", 
-                   "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0_obs_log.db", 
-                   5, True)
+    anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_map.xml", 
+                   "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_log.db", 
+                   5, False)
     #anim.mark(5, 17)
     #anim.show()
-    anim.display()
-    #anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v0\sim_v0.gif")
+    #anim.display()
+    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1.gif")

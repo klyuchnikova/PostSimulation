@@ -2,8 +2,8 @@
     "sim": {
         "NAME": "sim_v0",
         "START_TIME": null,
-        "END_TIME": null,
-        "ONE_TICK": 60,
+        "END_TIME": "2011-11-04T09:30:00",
+        "ONE_TICK": 1,
         "MAP_CONFIG_PATH": "map_v0.xml",
         "ROBOT_CONFIG_PATH": "robots_v0.xml",
         "QUEUE_CONFIG_PATH": "queue_v0.xml",

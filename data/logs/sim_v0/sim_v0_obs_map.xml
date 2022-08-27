@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <obs>
-  <END_TIME>2011-12-31 10:33:00</END_TIME>
-  <ONE_TICK>60</ONE_TICK>
-  <START_TIME>2011-11-06 06:48:00</START_TIME>
+  <END_TIME>2011-11-04 09:30:00</END_TIME>
+  <ONE_TICK>1</ONE_TICK>
+  <START_TIME>2011-11-04 09:00:00</START_TIME>
   <classes>
     TileClass.BLOCK
     TileClass.PATH_TILE
