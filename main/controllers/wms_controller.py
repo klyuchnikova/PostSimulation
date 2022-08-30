@@ -245,6 +245,7 @@ class WMS_communicator:
         else:
             start_tile = robot.position
         # choose the closest one from potential
+        print(list(map(lambda t: (t.x, t.y, t.tile_class), self.map_controller.destinations[destination])))
         end_tile = min(self.map_controller.destinations[destination], key = lambda x: self.graph_map.shortest_path_length(start_tile, x.send_from_tile)).send_from_tile
         rec_pkg = (1, (receiver_id, pkg_id))
         del_pkg = (2, (receiver_id, pkg_id))

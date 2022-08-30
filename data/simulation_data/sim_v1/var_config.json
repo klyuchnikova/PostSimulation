@@ -20,6 +20,6 @@
     },
     "logger": {
         "LOGGER_OUT_PATH": "E:\\E\\Copy\\PyCharm\\RoboPost\\PostSimulation\\data\\logs\\sim_v1",
-        "IS_LOGGING": false
+        "IS_LOGGING": true
     }
 }

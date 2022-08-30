@@ -296,6 +296,7 @@ class PostMap:
         
         self.sending_areas = dict() #id -> tile
         direct2num = {"n" : 0, "e" : 1, "s" : 2, "w" : 3}
+        num2direct = ["n", "e", "s", "w"]
         self.destination_tiles = dict()
         for destination in tree["destinations"]:
             dest_id, x, y = destination["id"], int(destination["locationx"]), int(destination["locationy"])
@@ -304,6 +305,16 @@ class PostMap:
             self.get(x,y).dest_id = dest_id
             self.destination_tiles[dest_id] = self.get(x,y)
         self.destinations = DestinationHolder(self, self.destination_file_path)
+        '''
+        for d_tile in self.destination_tiles.values():
+            for i, neig in enumerate(d_tile.neighbours):
+                if neig is not None and neig.tile_class == TileClass.PATH_TILE:
+                    area_id = d_tile.dest_id
+                    x, y = self.new2log_coords(neig.x, neig.y)
+                    d = num2direct[(i + 2)%4]
+                    print(f'      <sendingarea areaid="{area_id}" x="{x}"  y="{y}" z="1" send_direction="{d}" />')
+                    '''
+        
         for send_area in tree["sendingareas"]:
             area_id, x, y, d = send_area['areaid'], int(send_area['x']), int(send_area['y']), direct2num[send_area["send_direction"]]
             x,y = self.log_coords2new(x, y)
@@ -451,19 +462,9 @@ class PostMap:
     
     def get_map_coloring_files(self):
         return [[os.path.join(os.path.normpath(r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\tile_type_pictures"), TILE_TYPE_PICTURES[tile.tile_type._value_]) for tile in self.tile_map[i]] for i in range(len(self.tile_map))]
-
-from main.tools.generators import save_robot_configuration, save_queue_config
-def generate_random_robot_config_on_free_tiles(map_path, save_path = "robot_v0.xml", number_robots = 5):
-    map_ = PostMap(simpy.Environment(), map_file_path = map_path)
-    tile_pos = np.random.choice(map_.get_tiles_by_class(TileClass.PATH_TILE), number_robots)
-    robot_tiles = [(t.x, t.y) for t in tile_pos]
-    data = []
-    for i in range(number_robots):
-        data.append({'robot_id': "rob_"+str(i), 'x': robot_tiles[i][0] + map_.left_shift_, 'y': robot_tiles[i][1] + map_.up_shift_, 'direction' : random.randint(0, 3)})
-    save_robot_configuration(save_path, data)
     
 if __name__ == "__main__":
-    map_file_path=r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\sim_v0\map_v0.xml"
+    map_file_path=r"E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\simulation_data\default\map2.xml"
     map_ = PostMap(simpy.Environment(), map_file_path = map_file_path)
     map_.show()
     """

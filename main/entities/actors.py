@@ -93,9 +93,11 @@ class DWS_communicator:
         assert input_type in DWS_communicator.SYSTEM_TYPES
         self.input_type = input_type
         
+        self.total_packages = 0
         self.events_ = dict()
         if self.input_type == "FROM_FILE":
             self.events_ = load_dws_configuration(fpath)
+            self.total_packages = len(self.events_)
         else:
             pass
         

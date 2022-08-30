@@ -22,7 +22,8 @@ class QueueAreaController:
         self.receiver_id = receiver_id
         self.receiver_in_direction = receiver_d
         self.robot_order_ = deque() #right now useless --!
-        self.pckg_order = deque() #the packages which are NOT beight sent
+        self.pckg_order = deque() #the packages which are NOT being sent
+        self.pckg_sent = 0
         self.map_ = map_
         self.path = [] #order of tiles in queue
         
@@ -91,6 +92,7 @@ class QueueAreaController:
             command = self.robot_controller.wms_.build_path(self.receiver_tile.robot, self.receiver_id, pckg_id, destination)
             self.receiver_tile.robot.blocked = False
             self.robot_controller.process_wms_command(command)
+            self.pckg_sent += 1
             
     def receiver_move_in(self, robot):
         """ this is the function triggered when a robot enters receiver. 
@@ -101,15 +103,15 @@ class QueueAreaController:
         
     def move_in_robot_(self, robot, tile):
         # robot must already be on the tile inside Queue area
-        print(f"moving in: {self.robot_order_} <- {robot.robot_id}")
+        # print(f"moving in: {self.robot_order_} <- {robot.robot_id}")
         self.robot_order_.append(robot)
         # because of difficulties with occupation matrix we have to at some point reallocate robot at the beginning of the queue
         self.robot_controller.assighn_robot_position(robot, self.receiver_x, self.receiver_y, self.receiver_in_direction)
         self.robot_arrival_event.setdefault(robot.robot_id, self.env.event()).succeed()
     def remove_first_robot_(self):
-        print(f'remove_first_robot_ called : {self.robot_order_} ->', end = " ")
+        # print(f'remove_first_robot_ called : {self.robot_order_} ->', end = " ")
         self.robot_order_.pop()
-        print(self.robot_order_)
+        # print(self.robot_order_)
     def remove_last_robot_(self):
         self.robot_order_.popleft()
     def remove_robot_(self, robot):
@@ -131,14 +133,14 @@ class QueueAreaController:
         return len(self.robot_order_)
     
     def process_package(self, pkg_id, destination):
-        print(f"{self.env.now}: receiver {self.receiver_id} received package {pkg_id} to be sent to {destination}")
+        print(f"\t{self.env.now}: receiver {self.receiver_id} received package {pkg_id} to be sent to {destination}")
         self.pckg_order.append((pkg_id, destination))
     
     def process_path_request(self, commands, robot_id = None):
         # the part where queue takes charge of queueing requests to deliver packages
         # 1. wait till the robot is ready at the reciever
         # 2. call controller to add the commands with robot_id to pathes (during the tick or not)
-        print(f"queue {self.receiver_id} process_path_request: ", commands, robot_id )
+        # print(f"queue {self.receiver_id} process_path_request: ", commands, robot_id )
         if robot_id is None:
             # simply wait till some robot is in queue
             self.env.process(self.await_first_in_queue_to_command(commands))
@@ -153,9 +155,9 @@ class QueueAreaController:
         yield self.queue_tile.container.put(1)
         
     def await_robot_in_queue_to_command(self, robot_id, commands):
-        print("awaiting await_robot_in_queue_to_command")
+        # print("awaiting await_robot_in_queue_to_command")
         yield self.robot_arrival_event[robot_id]
-        print("awaiting await_robot_in_queue_to_command SUCCEED!")
+        # print("awaiting await_robot_in_queue_to_command SUCCEED!")
         self.robot_controller.assighn_path_to(robot_id, commands)
 
 class RobotController:
@@ -228,6 +230,7 @@ class RobotController:
         # 0 - free, 1 - occupied with robot on current tick, 2 - occupied by command on next move        
         self.crete_robots_(load_robot_configuration(self.init_file_path))
         
+        self.pckg_sent = 0
         self.queue_controllers = dict() # receiver_id -> controller
         self.create_queue_controllers(load_queue_areas(self.queues_init_file))
         
@@ -242,7 +245,7 @@ class RobotController:
     def update_state_by_responses(self):
         for robot_o_id in range(self.number_robots):
             if self.robot_responses[robot_o_id]: # if the action was just finished on this tick
-                print(f"robot {robot_o_id} finished action {self.current_commands_[robot_o_id]}, {self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} -> ", end = "")
+                #print(f"robot {robot_o_id} finished action {self.current_commands_[robot_o_id]}, {self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} -> ", end = "")
                 if self.current_commands_[robot_o_id][0] == "move_forward":
                     d = self.robot_directions_[robot_o_id]
                     self.occupation_map_[self.robot_positions_[robot_o_id][1], self.robot_positions_[robot_o_id][0]] -=1
@@ -253,7 +256,9 @@ class RobotController:
                         self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] + 1)%4
                     else:
                         self.robot_directions_[robot_o_id] = (self.robot_directions_[robot_o_id] - 1)%4
-                print(f"{self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} while real are {self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction}")
+                elif self.current_commands_[robot_o_id][0] == "send_package":
+                    self.pckg_sent += 1
+                # print(f"{self.robot_positions_[robot_o_id], self.robot_directions_[robot_o_id]} while real are {self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction}")
                 self.current_commands_[robot_o_id] = None
                     
     def get_robots_filling(self):
@@ -274,9 +279,7 @@ class RobotController:
         # this method is eventually called if robot receives any new commands
         robot_o_id = self.robot_id2order[robot_id] 
         x,y,d = self.robots_[robot_o_id].position.x, self.robots_[robot_o_id].position.y, self.robots_[robot_o_id].direction
-        print(f"assighn path {self.pathes_[robot_o_id]} -> ",end = "")
         self.pathes_[robot_o_id].extend(self.parse_wms_robot_commands(x,y,d, path))
-        print(self.pathes_[robot_o_id])
     
     def process_package(self, event):
         receiver_id = event['conveyer_id']
@@ -337,7 +340,7 @@ class RobotController:
                 # occupy the direction in which the robot moves if it does (also checks if the move is valid)
                 self.update_state_by_command(robot_o_id, self.current_commands_[robot_o_id])
                 # if the move is ok then make it
-                print(f"{self.env.now}: sending command {self.current_commands_[robot_o_id][0]} to robot {robot_o_id}")
+                # print(f"{self.env.now}: sending command {self.current_commands_[robot_o_id][0]} to robot {robot_o_id}")
                 self.env.process(self.send_robot_command_(robot_o_id, self.current_commands_[robot_o_id][0], self.current_commands_[robot_o_id][1]))
                 
     def make_routine_loop(self):

@@ -136,7 +136,7 @@ class MapBlock:
         pygame.draw.rect(self.win, self.tile_back_color, self.bg)
         self.draw_pictured_tiles()
 
-class Aimator:
+class Animator:
     def __init__(self, obs_config_path, robot_config_path, mid_frames = 5, show_window = False):
         if not show_window:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -155,7 +155,6 @@ class Aimator:
         self.robot_color = (0,250,154)
         self.package_color = (199,21,133)
         self.load_start_configs(self.obs_config_path)
-        self.load_robot_config(self.robot_config_path)
         
         self.robots_data = []
         
@@ -186,7 +185,7 @@ class Aimator:
         for row in doc.getElementsByTagName("files"):
             self.map_controller.map_pictures_pathes.append(row.firstChild.nodeValue.split())    
         self.map_controller.pre_setup()
-        
+        self.load_robot_config(self.robot_config_path)
         self.pre_setup()
         
     def load_robot_config(self, robot_conf_path):
@@ -214,7 +213,8 @@ class Aimator:
         self.map_controller.win = pygame.Surface(self.map_controller.box_size)
         self.label_controller.win = pygame.Surface(self.label_controller.box_size)
         
-        self.number_frames = self.label_controller.number_frames
+        self.cur.execute("SELECT COUNT(*) FROM robot_positions")
+        self.number_frames = self.cur.fetchone()[0]
         self.robot_radius = self.map_controller.tile_pix_height//2*0.8
         self.one_pause = self.label_controller.ONE_TICK/self.mid_frames
         self.fps = int(self.fps/5*self.label_controller.ONE_TICK*self.mid_frames)
@@ -284,7 +284,7 @@ class Aimator:
             self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d
         
     def show(self):
-        while True:#self.number_frames:
+        while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit(); 
@@ -349,20 +349,25 @@ class Aimator:
             self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d   
         return cadre
             
-    def generate_zip(self, fpath):
-        print(f"{datetime.now().strftime('%H:%M:%S')}: started generating zip")        
+    def generate_zip(self, fpath, max_frames = None):
+        print(f"{datetime.now().strftime('%H:%M:%S')}: generating frames")        
         fpath = os.path.normpath(fpath)
         dpath = os.path.join(os.path.dirname(fpath), "tmp")
         if not os.path.exists(dpath):
             os.mkdir(dpath)
         
+        if max_frames is not None:
+            self.number_frames = min(self.number_frames, max_frames)
         frame_id = 0
         cadre = 0
         self.robots = dict()
         self.images = []
+        bar = tqdm(range(self.number_frames))
         while frame_id < self.number_frames:
             cadre = self.draw_zip(frame_id, dpath, cadre)
+            bar.update()
             frame_id += 1
+        print(f"\n{datetime.now().strftime('%H:%M:%S')}: started generating zip")
         imageio.mimsave(fpath, self.images, fps=self.fps)
         print(f"{datetime.now().strftime('%H:%M:%S')}: result saved to {fpath}")
         self.robots = dict()
@@ -380,10 +385,10 @@ class Aimator:
         self.map_controller.mark(x, y)
     
 if __name__ == "__main__":
-    anim = Aimator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_map.xml", 
+    anim = Animator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_map.xml", 
                    "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_log.db", 
                    5, False)
     #anim.mark(5, 17)
     #anim.show()
     #anim.display()
-    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1.gif")
+    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1.gif", 300)
