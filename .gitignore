@@ -2,6 +2,6 @@
 *.gif
 *.png
 !tile_type_pictures/*.png
-myproject.egg-info/
+myproject.egg-info
 __pycache__/
 tmp/
