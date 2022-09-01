@@ -78,11 +78,10 @@ class EnvController:
         
     def run_time_loop(self):
         """ 
-        1. get events from dws
-        2. send requests to wms to make pathes
-        3. update pathes in robot controller
+        1. log current map state
+        2. get events from dws
+        3. send requests to robot controller
         4. make robot controller loop
-        5. log current map state
         """
         self.logger_.log_obs_event(self.robot_controller)
         for event in self.dws_.receive_tick_events(self.current_tick):

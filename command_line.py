@@ -20,7 +20,7 @@ def simulate(fpath, max_duration = None):
     env = EnvController(fpath)
     env.run(max_duration)
   
-def show(fpath, output_path = None, mid_frames = 5):
+def show(fpath, mid_frames = 5):
     fpath = os.path.normpath(fpath)
     env_vars = load_env_configuration(fpath)
     sim_name = env_vars["sim"]["NAME"]
@@ -52,17 +52,17 @@ def generate_robots(fpath, nmber_robots = 5, output_path = None):
     fpath = os.path.normpath(fpath)
     map_path = load_env_configuration(fpath)["sim"].get("MAP_CONFIG_PATH", "data\\simulation_data\\default\\map.xml")
     if output_path is None:
-        output_path = os.path.join(os.path.dirname(fpath),"robots.json")
+        output_path = os.path.join(os.path.dirname(fpath),"robots.xml")
     generate_random_robot_config_on_free_tiles(map_path, output_path, number_robots=number_robots)
 
-def generate_dws(fpath):
-    generate_define_dws_config(fpath)
+def generate_dws(fpath, number_packages = 100, number_conveyers = 10):
+    generate_define_dws_config(fpath, number_packages, number_packages, number_conveyers)
 
 if __name__ == "__main__":
     command_name = sys.argv[1]
     args = sys.argv[2:]
     if command_name == "simulate":
-        simultate(*args)
+        simulate(*args)
     elif command_name == "animate":
         animate(*args)
     elif command_name == "show":

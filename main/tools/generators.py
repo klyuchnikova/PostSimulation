@@ -72,7 +72,7 @@ def generate_dws_config_file(fpath, start_date, end_date, tick_duration, number_
             prev.append({"id" : "pkg_" + str(i), "conveyer_id" : package_conveyers[i], "destination" : package_destinations[i]})
             conf[date.isoformat()] = prev
 
-def generate_define_dws_config(env_conf_path):
+def generate_define_dws_config(env_conf_path, number_packages = 100, number_conveyers = 10):
     env_conf_path = os.path.normpath(env_conf_path)
     sim_dir = os.path.dirname(env_conf_path)
     distrib_path = '..\\..\\data\\simulation_data\\default\\destinations_distribution.json'
@@ -82,7 +82,7 @@ def generate_define_dws_config(env_conf_path):
     start_time = env_vars["START_TIME"]
     end_time = env_vars.get("END_TIME", start_time + timedelta(hours = 1))
     tick_duration = env_vars["ONE_TICK"]
-    generate_dws_config_file(os.path.join(sim_dir, 'dws_conf'), start_date=start_time, end_date=end_time, tick_duration=tick_duration, number_packages=100, number_conveyers=10, destinations=dist)
+    generate_dws_config_file(os.path.join(sim_dir, 'dws_conf'), start_date=start_time, end_date=end_time, tick_duration=tick_duration, number_packages=number_packages, number_conveyers=number_conveyers, destinations=dist)
             
 def generate_destination_config(fpath, destination_list = None, places_list = None):
     if destination_list is None or places_list is None:
