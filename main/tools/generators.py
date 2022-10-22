@@ -6,8 +6,6 @@ import random
 import shelve
 import numpy as np
 from main.tools.loaders import load_env_configuration
-from main.entities.post_map import PostMap
-import simpy
 
 def json_serial(obj):
     if isinstance(obj, (datetime)):
@@ -48,6 +46,23 @@ def generate_env_config_file(fpath, sim, Robot):
     for var_ in vars_d["logger"]:
         data["logger"][var_] = getattr(sim.logger_, var_)
     save_env_configuration(fpath, data)
+    
+'''
+def generate_dws_config_file(fpath, start_date, end_date, tick_duration, number_packages, number_conveyers, destinations, dist = None):
+    # shelve like {date-time in iso : {"id" : string, "conveyer_id" : int}
+    second_duration = (end_date - start_date).total_seconds()
+    package_arrivals = [random.randrange(0, second_duration//tick_duration, 1) for i in range(number_packages)]
+    package_conveyers = [random.randrange(1, number_conveyers+1, 1) for i in range(number_packages)]
+    if not os.path.isdir(fpath):
+        os.mkdir(fpath)
+    fpath = os.path.join(fpath, os.path.basename(fpath))
+    with shelve.open(fpath) as conf:
+        for i in range(number_packages):
+            date = start_date + timedelta(seconds = package_arrivals[i]*tick_duration)
+            prev = conf.setdefault(date.isoformat(), [])
+            prev.append({"id" : "pkg_" + str(i), "conveyer_id" : package_conveyers[i], "destination" : np.random.choice(destinations)})
+            conf[date.isoformat()] = prev
+'''
             
 def generate_dws_config_file(fpath, start_date, end_date, tick_duration, number_packages, number_conveyers, destinations = None):
     # shelve like {date-time in iso : {"id" : string, "conveyer_id" : int}
@@ -72,7 +87,7 @@ def generate_dws_config_file(fpath, start_date, end_date, tick_duration, number_
             prev.append({"id" : "pkg_" + str(i), "conveyer_id" : package_conveyers[i], "destination" : package_destinations[i]})
             conf[date.isoformat()] = prev
 
-def generate_define_dws_config(env_conf_path, number_packages = 100, number_conveyers = 10):
+def generate_define_dws_config(env_conf_path):
     env_conf_path = os.path.normpath(env_conf_path)
     sim_dir = os.path.dirname(env_conf_path)
     distrib_path = '..\\..\\data\\simulation_data\\default\\destinations_distribution.json'
@@ -82,7 +97,7 @@ def generate_define_dws_config(env_conf_path, number_packages = 100, number_conv
     start_time = env_vars["START_TIME"]
     end_time = env_vars.get("END_TIME", start_time + timedelta(hours = 1))
     tick_duration = env_vars["ONE_TICK"]
-    generate_dws_config_file(os.path.join(sim_dir, 'dws_conf'), start_date=start_time, end_date=end_time, tick_duration=tick_duration, number_packages=number_packages, number_conveyers=number_conveyers, destinations=dist)
+    generate_dws_config_file(os.path.join(sim_dir, 'dws_conf'), start_date=start_time, end_date=end_time, tick_duration=tick_duration, number_packages=100, number_conveyers=10, destinations=dist)
             
 def generate_destination_config(fpath, destination_list = None, places_list = None):
     if destination_list is None or places_list is None:
@@ -95,15 +110,6 @@ def generate_destination_config(fpath, destination_list = None, places_list = No
         destinations.append({"id" : dest_id, "place_id" : places_list[i%len(places_list)]})
     with open(fpath, 'w') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n' + dict2xml({"destination" : destinations}, wrap = "destinations"))      
-     
-def generate_random_robot_config_on_free_tiles(map_path, save_path = "robot_v0.xml", number_robots = 5):
-    map_ = PostMap(simpy.Environment(), map_file_path = map_path)
-    tile_pos = np.random.choice(map_.get_tiles_by_class(TileClass.PATH_TILE), number_robots)
-    robot_tiles = [(t.x, t.y) for t in tile_pos]
-    data = []
-    for i in range(number_robots):
-        data.append({'robot_id': "rob_"+str(i), 'x': robot_tiles[i][0] + map_.left_shift_, 'y': robot_tiles[i][1] + map_.up_shift_, 'direction' : random.randint(0, 3)})
-    save_robot_configuration(save_path, data)
             
 if __name__ == "__main__":
     """

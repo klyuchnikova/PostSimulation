@@ -16,15 +16,16 @@ class Logger:
         #                                       dws_log.dir
         #               -  {sim_name}_obs_log.db - SQLLite3 as it's much more effective (i hope)
         self.sim_name = env_controller.NAME
+        LOGGER_OUT_PATH = os.path.join(env_controller.sim_dir_path, LOGGER_OUT_PATH)     
+        
         self.logging = IS_LOGGING
-        if self.logging:
-            LOGGER_OUT_PATH = os.path.join(env_controller.sim_dir_path, LOGGER_OUT_PATH) 
-            self.out_path = LOGGER_OUT_PATH
-            if not os.path.exists(self.out_path):
-                os.mkdir(self.out_path)
-            
-            DB_PATH = os.path.join(LOGGER_OUT_PATH, f"{self.sim_name}_obs_log.db")
-            self.db_path = DB_PATH
+        self.out_path = LOGGER_OUT_PATH
+        
+        if not os.path.exists(self.out_path):
+            os.makedirs(self.out_path)
+        
+        DB_PATH = os.path.join(LOGGER_OUT_PATH, f"{self.sim_name}_obs_log.db")
+        self.db_path = DB_PATH
         
     def setup_obs_db(self, db_path):
         start_commands = ["""CREATE TABLE IF NOT EXISTS robot_positions(
@@ -44,40 +45,37 @@ class Logger:
             self.conn.commit()
       
     def create_obs_start_configs(self, env_controller):
-        if self.logging:
-            map_path = os.path.join(self.out_path, f"{self.sim_name}_obs_map.xml")
-            save_map_log_configuration(map_path, {"classes" : env_controller.map_.get_map_classes(), 
-                                                  "files" : env_controller.map_.get_map_coloring_files(),
-                                                  "START_TIME" : env_controller.START_TIME,
-                                                  "END_TIME" : env_controller.END_TIME,
-                                                  "ONE_TICK" : env_controller.ONE_TICK})
-            self.setup_obs_db(self.db_path)
-            self.db_id = 0
-            self.frame_id = 0
+        map_path = os.path.join(self.out_path, f"{self.sim_name}_obs_map.xml")
+        save_map_log_configuration(map_path, {"classes" : env_controller.map_.get_map_classes(), 
+                                              "files" : env_controller.map_.get_map_coloring_files(),
+                                              "START_TIME" : env_controller.START_TIME,
+                                              "END_TIME" : env_controller.END_TIME,
+                                              "ONE_TICK" : env_controller.ONE_TICK})
+        self.setup_obs_db(self.db_path)
+        self.db_id = 0
+        self.frame_id = 0
         
     def log_wms_event(self):
         pass
     def log_dws_event(self):
         pass
     def log_obs_event(self, robot_controller):
-        if self.logging:
-            logs = zip(range(self.db_id, self.db_id + robot_controller.number_robots), 
-                       [self.frame_id]*robot_controller.number_robots, 
-                       robot_controller.robot_order2id, 
-                       (str(pos[0]) for pos in robot_controller.robot_positions_),
-                       (str(pos[1]) for pos in robot_controller.robot_positions_),
-                       map(str, robot_controller.robot_directions_),
-                       map(str, robot_controller.get_robots_filling()))
-            self.cur.executemany("INSERT INTO robot_positions VALUES(?, ?, ?, ?, ?, ?, ?);", logs)
-            self.conn.commit()
-            
-            self.db_id += robot_controller.number_robots
-            self.frame_id += 1        
+        logs = zip(range(self.db_id, self.db_id + robot_controller.number_robots), 
+                   [self.frame_id]*robot_controller.number_robots, 
+                   robot_controller.robot_order2id, 
+                   (str(pos[0]) for pos in robot_controller.robot_positions_),
+                   (str(pos[1]) for pos in robot_controller.robot_positions_),
+                   map(str, robot_controller.robot_directions_),
+                   map(str, robot_controller.get_robots_filling()))
+        self.cur.executemany("INSERT INTO robot_positions VALUES(?, ?, ?, ?, ?, ?, ?);", logs)
+        self.conn.commit()
+        
+        self.db_id += robot_controller.number_robots
+        self.frame_id += 1        
     
     def __del__(self):
-        if self.logging:
-            self.cur.close()
-            self.conn.close()
+        self.cur.close()
+        self.conn.close()
         
         
 s = os.path.normpath(r"E:\E\Copy\PyCharm\RoboPost\PostSimulationP\data\logs")

@@ -12,6 +12,7 @@ __pycache__/
 # Default ignored files
 *.gif
 *.png
+*.jpg
 !tile_type_pictures/*.png
 myproject.egg-info
 <<<<<<< HEAD
