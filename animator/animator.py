@@ -65,8 +65,9 @@ class LabelBlock:
                 
     
 class MapBlock:
-    def __init__(self):
+    def __init__(self, show_tile_direction = False):
         self.wind = None
+        self.show_tile_direction = show_tile_direction
         self.map_classes = [] # 2d array of tile classes in string format like "TileState.BLOCK"
         self.map_pictures_pathes = [] # 2d array of tile     
         self.map_width = 0
@@ -96,6 +97,13 @@ class MapBlock:
         self.map_pictures[y][x].fill((255, 0, 0))
             
     def load_picture(self, fpath, tile_class):
+        if not self.show_tile_direction:
+            class_colors = {"TileClass.QUEUE_TILE" : (251, 248, 204), "TileClass.SORTING_TILE": (142, 236, 245), "TileClass.STATION_TILE": (253, 228, 207), "TileClass.CHARGE_TILE": (185, 251, 192), "TileClass.PATH_TILE": (234, 248, 251), "TileClass.SENDING_TILE" : (142, 236, 245)}
+            if tile_class in class_colors:
+                surface = pygame.Surface((self.tile_pix_width, self.tile_pix_height))
+                surface.fill(class_colors[tile_class])
+                return surface
+        
         img = Image.open(fpath).resize((self.tile_pix_width, self.tile_pix_height))
         surface = pygame.Surface((self.tile_pix_width, self.tile_pix_height))
         tile_class_hue = {"TileClass.STATION_TILE" : (120, None, 0.9), "TileClass.SORTING_TILE": (0,), "TileClass.QUEUE_TILE" : (20,), "TileClass.CHARGE_TILE" : (50,), "TileClass.DESTINATION" : (260,), "TileClass.BLOCK" : (None, None, 0.5)}
@@ -137,7 +145,7 @@ class MapBlock:
         self.draw_pictured_tiles()
 
 class Animator:
-    def __init__(self, obs_config_path, robot_config_path, mid_frames = 5, show_window = False):
+    def __init__(self, obs_config_path, robot_config_path, mid_frames = 5, show_window = False, show_tile_direction = True):
         if not show_window:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
@@ -149,7 +157,7 @@ class Animator:
         self.mid_frames = mid_frames #one move will be displayed in mid_frames cadres
         self.fps = 60 # considering one tick duration = 1 second, mid_frames = 5 this is optional
         self.label_controller = LabelBlock()
-        self.map_controller = MapBlock()
+        self.map_controller = MapBlock(show_tile_direction)
         
         self.win_color = (52, 137, 235)
         self.robot_color = (0,250,154)
@@ -387,8 +395,10 @@ class Animator:
 if __name__ == "__main__":
     anim = Animator("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_map.xml", 
                    "E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1_obs_log.db", 
-                   5, False)
-    #anim.mark(5, 17)
-    #anim.show()
+                   5, True, 
+                   show_tile_direction = False)
+    anim.mark(9, 0)
+    anim.mark(10, 33)
+    anim.show()
     #anim.display()
-    anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1.gif", 300)
+    #anim.generate_zip("E:\E\Copy\PyCharm\RoboPost\PostSimulation\data\logs\sim_v1\sim_v1.gif", 300)

@@ -107,7 +107,7 @@ def get_intersections(point_1, point_2, cycle):
    
 
 class PathObject:
-    def __init__(name, intersections = None):
+    def __init__(self, name, intersections = None):
         self.name = name
         if intersections is None:
             self.intersections = dict() # name to a tuple of points
@@ -124,12 +124,16 @@ class PathObject:
     def get_lines(self):
         # returns tuple of lines - each is a tuple of two points (2d tuple)
         raise NotImplementedError
+    
+    def parameters(self):
+        # returns dict of parameters given in constructor
+        raise NotImplementedError        
             
 
 class Cycle(PathObject):
     def __init__(self, name, x1, y1, x2, y2, direction):
         # left top is (x1, y1) and right top is (x2, y2):
-        super().__init__(self, name)
+        super().__init__(name)
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
@@ -138,6 +142,9 @@ class Cycle(PathObject):
         #self.left_top = (y2, x2)
         self.direction = direction # 1 for clockwise or 0 for not
         # for example (0,0) (4,4) direction=1 means 0,0 -> 4,0 -> 4,4 -> 0,4
+    
+    def parameters(self):
+        return {'name': self.name, 'x1': self.x1, 'y1' : self.y1, 'x2':self.x2, 'y2':self.y2, 'direction':self.direction}
     
     def get_lines(self):
         lines = (((x_1, y_1), (x_2, y_1)), 
@@ -276,179 +283,113 @@ class Cycle(PathObject):
             pass
         
 class VerticalLine(PathObject):
-    def __init__(self, name, x, y_1, y_2, direction):
+    def __init__(self, name, x, y1, y2, direction):
         # y_1 < y_2, direction = 1 means we go down, 0 - up
-        super().__init__(self, name)
+        super().__init__(name)
         self.x = x
-        self.y1 = y_1
-        self.y2 = y_2
+        self.y1 = y1
+        self.y2 = y2
         self.direction = direction
+        
+    def parameters(self):
+        return {'name': self.name, 'x': self.x, 'y1' : self.y1, 'y2':self.y2, 'direction':self.direction}    
         
     def get_lines(self):
         if self.direction:
             return ( ((x, y_1), (x, y_2)),)
         else:
             return ( ((x, y_2), (x, y_1)),)
-        
-            
+   
+def InitPathObject(args):
+    if set(args.keys()) == {'name', 'x', 'y1', 'y2', 'direction'}:
+        return VerticalLine(*args)
+    else:
+        return Cycle(*args)
+
+def reverse_dict(dictionary):
+    # dict (key: value) -> dict (value : list of keys) 
+    new_keys = set(dictionary.values()) 
+    new_dict = dict.fromkeys(new_keys, list())
+    for v, k in dictionary.items():
+        new_dict[k].append(v)
+    return new_dict
+
+def unreverse_dict(dictionary):
+    new_dict = dict()
+    for v, keys in dictionary.items():
+        for key in keys:
+            try:
+                new_dict[tuple(key)] = int(v)
+            except:
+                new_dict[tuple(key)] = v
+    return new_dict
 
 class CycleMap:
     def __init__(self, map_controller, save_dir = None):
         self.map_controller = map_controller
-        self.map_graph = [] #list of sets
-        self.shortest_pathes = []
-        self.next_tiles = dict()
-        self.prev_tiles = dict()
+        self.map_height = 35
+        self.map_width = 49
+        self.groups = {(0, 0): 2, (5,5):3} # point : group id
+        path_objects = [{"name": 5, "x1": 0, "y1":0, "x2": 5, "y2":6, "direction": 1}] # list of args -> dict of objects 
+        self.path_objects = dict()
+        for param_set in path_objects:
+            self.path_objects[param_set['name']] = InitPathObject(**param_set)       
+        self.group2group = {(2, 3) : [5] }
+        self.object2object = dict() # optional
+        
         if save_dir is None:
             # load default
-            self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.normpath("..\\..\\data\\simulation_data\\default\\graphmap.json"))
+            self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.normpath("..\\..\\data\\simulation_data\\default\\cyclemap.json"))
         else:
-            self.file_path = os.path.join(os.path.normpath(save_dir), "graphmap.json")
-        self.number_nodes = self.map_controller.size
+            self.file_path = os.path.join(os.path.normpath(save_dir), "cyclemap.json")
+        #self.number_nodes = self.map_controller.size
         
         if os.path.exists(os.path.normpath(self.file_path)):
             self.load_from_file(self.file_path)
-            if len(self.map_graph) == 0 or len(self.wanted_tiles) == 0:
-                self.init_map_graph()
-            if len(self.shortest_pathes) == 0 or len(self.next_tiles) == 0:
-                self.count_shortest_pathes()
+            if len(self.object2object) == 0:
+                self.init_object2object()
         else:
-            self.init_map_graph()
-            self.count_shortest_pathes()  
-            self.save_state()
+            try:
+                self.save_state()
+            except:
+                os.remove(self.file_path)
+            raise FileNotFoundError
        
     def load_from_file(self, file_path):
         with open(file_path, "r") as file:
-            f = json.load(file, object_hook=jsonKeys2int)
-            
+            f = json.load(file)
+            for key, val in f.items():
+                self.__dict__[key] = val
+            path_objects = dict()
+            for param_set in self.path_objects:
+                path_objects[param_set["name"]] = InitPathObject(**param_set)
+            self.groups = unreverse_dict(self.groups)
+            self.group2group = { tuple(point): tuple(name_order) for point, name_order in self.group2group}
+            self.path_objects = path_objects
         
     def save_state(self):
         with open(self.file_path, "w") as f:
-            json.dump({"map_graph" : self.map_graph, 
-                       "shortest_pathes" : self.shortest_pathes, 
-                       "next_tiles" : self.next_tiles, 
-                       "prev_tiles" : self.prev_tiles,
-                       "wanted_tiles" : self.wanted_tiles}, f, cls=NumpyArrayEncoder)
-        
-    def init_map_graph(self):
-        # vector of ordered sets - classic graph where vertice ids are tile.y*width + tile.x
-        # simply to make it more efficient
-        self.map_graph = [[] for _ in range(self.map_controller.size)]
-        self.wanted_tiles = [] # chargers, sorting tiles, sending areas and beginning of queues
-        for x in range(self.map_controller.tile_width):
-            for y in range(self.map_controller.tile_height):
-                id_ = x + y*self.map_controller.tile_width
-                for d in self.map_controller.get(x,y).available_directions_:
-                    if d == 0:
-                        self.map_graph[id_].append(id_ - self.map_controller.tile_width)
-                    elif d == 1:
-                        self.map_graph[id_].append(id_ + 1)
-                    elif d == 2:
-                        self.map_graph[id_].append(id_ + self.map_controller.tile_width)
-                    else:
-                        self.map_graph[id_].append(id_ - 1)
-                tile_class = self.map_controller.get(x,y).tile_class               
-                if tile_class == TileClass.CHARGE_TILE:
-                    self.wanted_tiles.append(id_)
-                elif tile_class == TileClass.STATION_TILE:
-                    self.wanted_tiles.append(id_)
-                elif tile_class == TileClass.SENDING_TILE:
-                    self.wanted_tiles.append(id_)
-                elif tile_class == TileClass.QUEUE_TILE and self.map_controller.get(x, y).in_queue_order == 0:
-                    self.wanted_tiles.append(id_)
-        self.save_state()
-        
-    def count_pathes_from(self, tile_id):
-        visited = [False]*self.number_nodes
-        visited[tile_id] = True
-        current_level = {tile_id}
-        depth = 1
-        prev_tiles = self.prev_tiles[tile_id]
-        while len(current_level) > 0:
-            next_level = set()
-            for node in current_level:
-                for neigbour in self.map_graph[node]:
-                    if not visited[neigbour]:
-                        self.shortest_pathes[tile_id][neigbour] = depth
-                        prev_tiles[neigbour] = node
-                        visited[neigbour] = True
-                        next_level.add(neigbour)
-            depth+=1
-            current_level = next_level
-        
-    def count_pathes_to(self, tile_id, reversed_map_graph):
-        visited = [False]*self.number_nodes
-        visited[tile_id] = True      
-        current_level = {tile_id}
-        depth = 1
-        next_tiles = self.next_tiles[tile_id]
-        while len(current_level) > 0:
-            next_level = set()
-            for node in current_level:
-                for neigbour in reversed_map_graph[node]:
-                    if not visited[neigbour]:
-                        self.shortest_pathes[neigbour][tile_id] = depth
-                        next_tiles[neigbour] = node
-                        visited[neigbour] = True
-                        next_level.add(neigbour)
-            depth+=1
-            current_level = next_level
-        
-    def get_reversed_map_graph(self):
-        reversed_map_graph = [[] for i in range(self.number_nodes)]
-        for node in range(self.number_nodes):
-            for neig in self.map_graph[node]:
-                reversed_map_graph[neig].append(node) 
-        return reversed_map_graph
+            json.dump({"map_height" : self.map_height, 
+                       "map_width" : self.map_width, 
+                       "groups" : reverse_dict(self.groups), 
+                       "path_objects" : list(map(lambda obj: obj.parameters(), self.path_objects.values())),
+                       "group2group" : list(self.group2group.items()),
+                       "object2object" : self.object2object}
+                        , f, indent = 4)
     
-    def count_pathes_to_(self, tile_id, reversed_map_graph):
-        next_tiles = [-1]*self.number_nodes
-        shortest_pathes = [-1]*self.number_nodes
-        visited = [False]*self.number_nodes
-        visited[tile_id] = True  
-        shortest_pathes[tile_id] = 0
-        current_level = {tile_id}
-        depth = 1
-        while len(current_level) > 0:
-            next_level = set()
-            for node in current_level:
-                for neigbour in reversed_map_graph[node]:
-                    if not visited[neigbour]:
-                        shortest_pathes[neigbour] = depth
-                        next_tiles[neigbour] = node
-                        visited[neigbour] = True
-                        next_level.add(neigbour)
-            depth+=1
-            current_level = next_level   
-        return shortest_pathes, next_tiles
-        
-    def count_shortest_pathes(self):
-        # with floid algorithm let's count shortest pathes (maybe i'll even save that into a seperate file for speed)
-        number_tiles = len(self.map_graph)
-        self.shortest_pathes = np.array([[-1]*number_tiles for _ in range(number_tiles)])
-        self.next_tiles = dict([(key, [-1]*number_tiles) for key in self.wanted_tiles])
-        self.prev_tiles = dict([(key, [-1]*number_tiles) for key in self.wanted_tiles])
-        # presetup the shortest pathes with edge
-        for i in range(number_tiles):
-            self.shortest_pathes[i, i] = 0
-        for i in self.wanted_tiles:
-            self.next_tiles[i][i] = i
-            self.prev_tiles[i][i] = i
-        reversed_map_graph = self.get_reversed_map_graph()
-        num_worked_on = 0
-        d = len(self.wanted_tiles)//10
-        for tile in self.wanted_tiles:
-            self.count_pathes_from(tile)
-            self.count_pathes_to(tile, reversed_map_graph)
-            num_worked_on += 1
-            if num_worked_on%d == 0:
-                print(f"finished sorting tiles on {num_worked_on/d*10}%")
-        del reversed_map_graph
-        
+    def init_object2object(self):
+        for obj in self.path_objects.values():
+            for other in self.path_objects.values():
+                if (obj != other):
+                    obj.build_intersections(other)
+    
     def tile2id(self, tile):
-        return tile.y*self.map_controller.tile_width + tile.x
+        return tile.y*self.map_width + tile.x
     def id2coords(self, tile_id):
-        return tile_id%self.map_controller.tile_width, tile_id//self.map_controller.tile_width
+        tile_id = int(tile_id)
+        return tile_id%self.map_width, tile_id//self.map_width
+    def coords2id(self, coords):
+        return coords[1]*self.map_width + coords[0]
     def shortest_path_length(self, tile_start, tile_end):
         id_start = self.tile2id(tile_start)
         id_end = self.tile2id(tile_end)
@@ -482,3 +423,6 @@ class CycleMap:
         id_start = self.tile2id(tile_start)
         id_end = self.tile2id(tile_end)
         return self.get_shortest_path_(id_start, id_end)
+    
+if __name__ == '__main__':
+    map_ = CycleMap(5)
