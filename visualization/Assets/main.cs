@@ -33,7 +33,7 @@ public class main : MonoBehaviour
     void Start()
     {
         System.Random rnd = new System.Random(DateTime.Now.Millisecond);
-        SkladWrapper skladWrapper = new SkladWrapper(@"skladConfig.xml");
+        SkladWrapper skladWrapper = new SkladWrapper(@"wms-config.xml");
         while (skladWrapper.Next())
         {
             List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
@@ -41,7 +41,7 @@ public class main : MonoBehaviour
             {
                 foreach(AntBot ant in freeAnts)
                 {
-                    if (ant.charge > 7100)
+                    if (ant.charge > 7000)
                         if (ant.commandList.commands.Count == 0)
                         {
                             Direction dir = (Direction)rnd.Next(0, 4);

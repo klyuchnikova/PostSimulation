@@ -16,7 +16,7 @@ namespace TestSklad2
         static void Main(string[] args)
         {
             System.Random rnd = new System.Random(DateTime.Now.Millisecond);
-            SkladWrapper skladWrapper = new SkladWrapper(@"C:\SKLAD\skladConfig.xml");
+            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
             skladWrapper.isDebug = true;
             while (skladWrapper.Next())
             {
@@ -49,7 +49,7 @@ namespace TestSklad2
 
                 }
             }
-            skladWrapper.SaveLog(@"C:\SKLAD\log.xml");
+            skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");
         }
     }
 }

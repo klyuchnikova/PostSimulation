@@ -19,6 +19,6 @@
   <unitChargeTime>720</unitChargeTime>
   <unitChargeValue>7200</unitChargeValue>
   <unitCount>1</unitCount>
-  <skladLayout>C:\SKLAD\sklad_config1.txt</skladLayout>
-  <antBotLayout>C:\SKLAD\antbot_config1.txt</antBotLayout>
+  <skladLayout>..\wms-map_1.csv</skladLayout>
+  <antBotLayout>..\wms-robots_1.csv</antBotLayout>
 </SkladConfig>
