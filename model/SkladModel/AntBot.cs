@@ -176,6 +176,34 @@ namespace SkladModel
                 case AntBotState.Rotate:
                     var task2 = commandList.commands.First();
                     return task2;
+                case AntBotState.Charging:
+                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
+                    if (commandList.commands.Count > 0)
+                    {
+                        var task = commandList.commands.First();
+                        if (task.Key < timeUncharged)
+                            return task;
+                    }
+                    return (timeUncharged, new AntBotUnCharging(this));
+                case AntBotState.Loading:
+                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
+                    if (commandList.commands.Count > 0)
+                    {
+                        var task = commandList.commands.First();
+                        if (task.Key < timeUncharged)
+                            return task;
+                    }
+                    return (timeUncharged, new AntBotUnCharging(this));
+                case AntBotState.Unloading:
+                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
+                    if (commandList.commands.Count > 0)
+                    {
+                        var task = commandList.commands.First();
+                        if (task.Key < timeUncharged)
+                            return task;
+                    }
+                    return (timeUncharged, new AntBotUnCharging(this));
+
 
             }
             return (TimeSpan.MaxValue, null);
@@ -306,6 +334,13 @@ namespace SkladModel
             if (direction == Direction.Up || direction == Direction.Down)
                 return isXDirection;
             return !isXDirection;
+        }
+
+        public TimeSpan getTimeForFullCharge()
+        {
+            return TimeSpan.FromSeconds(
+                (sklad.skladConfig.unitChargeValue - charge) /
+                sklad.skladConfig.unitChargeValue * sklad.skladConfig.unitChargeTime);
         }
 
     }
