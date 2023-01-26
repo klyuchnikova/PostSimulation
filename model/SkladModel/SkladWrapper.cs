@@ -68,10 +68,17 @@ namespace SkladModel
         }
 
 
+
         public void Move(AntBot antBot, Direction direction, int numCoord = 0, double time = 0)
         {
             Debug($"Macro - Move {direction}");
             if (antBot.xSpeed > 0 || antBot.ySpeed > 0)
+                throw new AntBotNotPosibleMovement();
+
+            int freePath = getFreePath(antBot, direction, antBot.lastUpdated);
+            if (numCoord == 0)
+                numCoord = freePath;
+            if (freePath < numCoord)
                 throw new AntBotNotPosibleMovement();
 
             antBot.CleanReservation();
@@ -79,11 +86,13 @@ namespace SkladModel
             if (time != 0)
                 antBot.commandList.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(time)));
 
-            int freePath = getFreePath(antBot, direction, antBot.actionTime());
-            if (numCoord == 0)
-                numCoord = freePath;
-            if (freePath < numCoord) 
-                throw new AntBotNotPosibleMovement();
+            if (antBot.isNeedRotateForDirection(direction))
+            {
+                antBot.commandList.AddCommand(new AntBotRotate(antBot));
+            }
+
+
+
 
             antBot.commandList.AddCommand(new AntBootAccelerate(antBot, direction));
             antBot.commandList.AddCommand(new AntBotMove(antBot, numCoord));
@@ -100,8 +109,18 @@ namespace SkladModel
             AntBot _antBot = cloneAnt(antBot);
             _antBot.Update(actionTime);
 
-            AbstractEvent ev = new AntBootAccelerate(_antBot, direction);
-            ev.runEvent(objects, actionTime);
+            AntBotAbstractEvent ev;
+            if (_antBot.isNeedRotateForDirection(direction))
+            {
+                ev = new AntBotRotate(_antBot);
+                ev.runEvent(objects, _antBot.lastUpdated);
+                _antBot.Update(ev.getEndTime());
+            }
+
+            ev = new AntBootAccelerate(_antBot, direction);
+            ev.runEvent(objects, _antBot.lastUpdated);
+            _antBot.Update(ev.getEndTime());
+
             return _antBot.getFreePath();
         }
         private void reservePath(AntBot antBot, Direction direction, TimeSpan actionTime, int numCoord)

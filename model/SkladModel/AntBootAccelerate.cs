@@ -31,14 +31,12 @@ namespace SkladModel
 
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
-            if (antBot.state != AntBotState.Wait)
+            if (antBot.state == AntBotState.Move)
                 throw new AntBotNotPosibleMovement();
-            /*
             if (antBot.isXDirection & (direction == Direction.Down || direction == Direction.Up))
                 throw new AntBotNotPosibleMovement();
             if (!antBot.isXDirection & (direction == Direction.Left || direction == Direction.Right))
                 throw new AntBotNotPosibleMovement();
-            */
             if (antBot.sklad.skladConfig.unitAccelerationTime != 0)
                 throw new NotImplementedException();
             if (direction == Direction.Left)

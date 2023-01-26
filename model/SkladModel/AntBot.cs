@@ -2,6 +2,7 @@
 using ExtendedXmlSerializer.Core.Sources;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -172,6 +173,9 @@ namespace SkladModel
                 case AntBotState.Accelerating:
                     var task1 = commandList.commands.First();
                     return task1;
+                case AntBotState.Rotate:
+                    var task2 = commandList.commands.First();
+                    return task2;
 
             }
             return (TimeSpan.MaxValue, null);
@@ -296,6 +300,14 @@ namespace SkladModel
                 commandList.commands.RemoveAt(0);
             }
         }
+
+        public bool isNeedRotateForDirection(Direction direction)
+        {
+            if (direction == Direction.Up || direction == Direction.Down)
+                return isXDirection;
+            return !isXDirection;
+        }
+
     }
 
 }
