@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Remoting.Messaging;
@@ -41,7 +42,7 @@ namespace SkladModel
     {
         public CommandList() { }
 
-        AntBot antBot;
+        public AntBot antBot;
         public AntBot antState;
         public TimeSpan lastTime;
         public CommandList(AntBot antBot) {
@@ -50,15 +51,33 @@ namespace SkladModel
             antState.commandList = new CommandList();
             lastTime = antBot.lastUpdated;
         }
-        public bool AddCommand(AntBotAbstractEvent abstractEvent)
+
+        public CommandList Clone()
         {
-            
+            CommandList cl = new CommandList(antBot);
+            cl.antState = antState.ShalowClone();
+            commands.ForEach(c => {
+                Type type = c.Ev.GetType();
+                var ev = (AntBotAbstractEvent)Activator.CreateInstance(type);
+                cl.commands.Add((c.Key, ev));
+            });
+            cl.lastTime= lastTime;
+            return cl;
+        }
+
+        public bool AddCommand(AntBotAbstractEvent abstractEvent, bool isNeedReserve = true)
+        {
+
             if (commands.Count == 0)
             {
                 antState = antBot.ShalowClone();
-                antState.commandList = new CommandList();
                 lastTime = antBot.lastUpdated;
             }
+            if (antState.commandList == null)
+            {
+                antState.commandList = new CommandList();
+            }
+
             antState.Update(lastTime);
             abstractEvent.antBot = antState;
             if (!abstractEvent.CheckReservation())
@@ -66,7 +85,8 @@ namespace SkladModel
                 abstractEvent.CheckReservation();
                 throw new AntBotNotPosibleMovement();
             }
-            abstractEvent.ReserveRoom();
+            if (isNeedReserve)
+                abstractEvent.ReserveRoom();
             commands.Add((lastTime, abstractEvent));
             antState.commandList.commands.Add((lastTime, abstractEvent));        
             abstractEvent.runEvent(null, abstractEvent.getEndTime());

@@ -8,6 +8,8 @@ namespace SkladModel
     public class AntBootAccelerate : AntBotAbstractEvent
     {
         Direction direction;
+
+        public AntBootAccelerate() { }
         public AntBootAccelerate(AntBot antBot, Direction direction) 
         {
             this.antBot = antBot;

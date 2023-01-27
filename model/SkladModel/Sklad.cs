@@ -15,8 +15,12 @@ namespace SkladModel
 
     public class Sklad : AbstractObject
     {
-        // y, x
+
         public Dictionary<int, Dictionary<int, int>> skladLayout = new Dictionary<int, Dictionary<int, int>>();
+
+        public List<(int x, int y)> source = new List<(int x, int y)>();
+        public List<(int x, int y)> target = new List<(int x, int y)>();
+
         public SkladConfig skladConfig;
         [XmlIgnore]
         public SquaresIsBusy squaresIsBusy;
@@ -32,12 +36,30 @@ namespace SkladModel
             int counter = 0;
             foreach (string line in System.IO.File.ReadLines(skladConfig.skladLayout))
             {
+
                 skladLayout.Add(counter, new Dictionary<int, int>());
                 string[] numbers = line.Split(',');
                 for (int i = 0; i < numbers.Length; i++)
+                {
                     skladLayout[counter].Add(i, int.Parse(numbers[i]));
+                }
                 counter++;
             }
+
+            for (int y = 0; y < skladLayout.Count; y++)
+            {
+                for (int x = 0; x < skladLayout[y].Count; x++)
+                {
+                    if (skladLayout[y][x] == 2)
+                        source.Add((x, y));
+                    if (skladLayout[y][x] == 3)
+                        target.Add((x, y));
+                    Console.Write(skladLayout[y][x] + " ");
+                }
+                Console.WriteLine();
+            }
+
+
             squaresIsBusy = new SquaresIsBusy(skladLayout, uid);
 
         }

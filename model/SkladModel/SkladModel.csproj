@@ -91,6 +91,7 @@
     <Compile Include="AntBotUnCharging.cs" />
     <Compile Include="AntBotUnload.cs" />
     <Compile Include="AntBotWait.cs" />
+    <Compile Include="FibonacciHeap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sklad.cs" />
     <Compile Include="SkladConfig.cs" />

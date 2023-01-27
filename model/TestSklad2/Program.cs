@@ -13,42 +13,58 @@ namespace TestSklad2
 {
     class Program
     {
+
+
+
+
+
         static void Main(string[] args)
         {
-            System.Random rnd = new System.Random(DateTime.Now.Millisecond);
-            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
-            skladWrapper.isDebug = true;
-            while (skladWrapper.Next())
+            void RandomMove(SkladWrapper skladWrapper)
             {
-                List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
-                if (freeAnts.Count > 0 && skladWrapper.isEventCountEmpty())
+                System.Random rnd = new System.Random(DateTime.Now.Millisecond);
+                skladWrapper.isDebug = true;
+                while (skladWrapper.Next())
                 {
-                    foreach (AntBot ant in freeAnts)
+                    List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
+                    if (freeAnts.Count > 0 && skladWrapper.isEventCountEmpty())
                     {
-                        if (ant.charge > 7100)
-                            if (ant.commandList.commands.Count == 0)
-                            {
-                                Direction dir = (Direction)rnd.Next(0, 4);
-                                int pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
-                                int count = 0;
-                                while (pm == 0)
+                        foreach (AntBot ant in freeAnts)
+                        {
+                            if (ant.charge > 7100)
+                                if (ant.commandList.commands.Count == 0)
                                 {
-                                    count++;
-                                    if (count > 10)
+                                    Direction dir = (Direction)rnd.Next(0, 4);
+                                    int pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
+                                    int count = 0;
+                                    while (pm == 0)
+                                    {
+                                        count++;
+                                        if (count > 10)
+                                            break;
+                                        dir = (Direction)rnd.Next(0, 4);
+                                        pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
+                                    }
+                                    if (pm != 0)
+                                    {
+                                        skladWrapper.Move(ant, dir, pm);
                                         break;
-                                    dir = (Direction)rnd.Next(0, 4);
-                                    pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
+                                    }
                                 }
-                                if (pm != 0)
-                                {
-                                    skladWrapper.Move(ant, dir, pm);
-                                    break;
-                                }
-                            }
+                        }
                     }
-
                 }
             }
+
+
+
+            
+            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
+
+
+            new MoveSort(skladWrapper).Run();
+
+
             skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");
         }
     }

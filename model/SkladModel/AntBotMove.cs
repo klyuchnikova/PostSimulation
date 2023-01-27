@@ -11,7 +11,7 @@ namespace SkladModel
         bool isCoordinate = false;
         int numCoord = 0;
 
-
+        public AntBotMove() { }
         public AntBotMove(AntBot antBot)
         {
             this.antBot = antBot;

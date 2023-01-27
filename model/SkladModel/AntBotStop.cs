@@ -10,9 +10,12 @@ namespace SkladModel
     public class AntBotStop : AntBotAbstractEvent
     {
 
-        public AntBotStop(AntBot antBot)
+        public AntBotStop() { }
+        bool isLongStop = true;
+        public AntBotStop(AntBot antBot, bool isLongStop = true)
         {
             this.antBot = antBot;
+            this.isLongStop = isLongStop;
         }
 
         public override bool CheckReservation()
@@ -25,8 +28,12 @@ namespace SkladModel
         {
             int x = antBot.xCord;
             int y = antBot.yCord;
-            return antBot.sklad.squaresIsBusy.GetPosibleReserve(x, y, getStartTime());
+            if (isLongStop)
+                return antBot.sklad.squaresIsBusy.GetPosibleReserve(x, y, getStartTime());
+            else
+                return getStartTime() + TimeSpan.FromSeconds(antBot.sklad.skladConfig.unitStopTime);
         }
+       
 
         public override void ReserveRoom()
         {
