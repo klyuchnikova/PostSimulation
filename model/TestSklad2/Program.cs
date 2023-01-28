@@ -61,8 +61,27 @@ namespace TestSklad2
             
             SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
 
+            while (skladWrapper.Next() && !skladWrapper.isEventCountEmpty())
+            {
 
-            new MoveSort(skladWrapper).Run();
+            }
+
+            List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
+            AntBot trgBot = freeAnts[0];
+            trgBot.CleanReservation();
+            trgBot.commandList.AddCommand(new AntBotRotate(trgBot));
+            trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
+
+            while (skladWrapper.Next())
+            {
+                Console.WriteLine($"control time {skladWrapper.updatedTime.TotalSeconds}");
+
+            }
+
+
+
+
+            //new MoveSort(skladWrapper).Run();
 
 
             skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");

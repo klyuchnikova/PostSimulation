@@ -14,7 +14,7 @@ namespace SkladModel
 
         public override bool CheckReservation()
         {
-            return antBot.commandList.antState.CheckRoom(getStartTime(), getEndTime());
+            return antBot.CheckRoom(getStartTime(), getEndTime());
         }
 
         public override TimeSpan getStartTime() => antBot.commandList.lastTime;
@@ -22,12 +22,18 @@ namespace SkladModel
 
         public override void ReserveRoom()
         {
-            antBot.commandList.antState.ReserveRoom(getStartTime(), getEndTime());
+            antBot.ReserveRoom(getStartTime(), getEndTime());
         }
 
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
-            throw new NotImplementedException();
+            antBot.state = AntBotState.Wait;
+            antBot.RemoveFirstCommand(timeSpan);
+            if (antBot.skladLogger != null)
+            {
+                Console.WriteLine($"antBot {antBot.uid} Wait {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
+                antBot.skladLogger.AddLog(antBot, "Wait");
+            }
         }
     }
 
