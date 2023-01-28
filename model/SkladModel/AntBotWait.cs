@@ -17,8 +17,8 @@ namespace SkladModel
             return antBot.CheckRoom(getStartTime(), getEndTime());
         }
 
-        public override TimeSpan getStartTime() => antBot.commandList.lastTime;
-        public override TimeSpan getEndTime() => antBot.commandList.lastTime + time;
+        public override TimeSpan getStartTime() => antBot.lastUpdated;
+        public override TimeSpan getEndTime() => antBot.lastUpdated + time;
 
         public override void ReserveRoom()
         {
@@ -33,6 +33,7 @@ namespace SkladModel
             {
                 Console.WriteLine($"antBot {antBot.uid} Wait {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 antBot.skladLogger.AddLog(antBot, "Wait");
+                Console.WriteLine("Wait");
             }
         }
     }

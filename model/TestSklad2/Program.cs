@@ -71,6 +71,8 @@ namespace TestSklad2
             trgBot.CleanReservation();
             trgBot.commandList.AddCommand(new AntBotRotate(trgBot));
             trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
+            trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
+
 
             while (skladWrapper.Next())
             {
