@@ -54,7 +54,13 @@ namespace SkladModel
         {
             if (CheckIsBusy(x, y, startInterval, endInterval, uid))
                 return false;
-            squareIsBusy[x][y].Add(startInterval, new TimeBusy(endInterval, uid));
+            if (squareIsBusy[x][y].ContainsKey(startInterval))
+            {
+                if ((squareIsBusy[x][y][startInterval].endTime < endInterval))
+                    squareIsBusy[x][y][startInterval].endTime = endInterval;
+            }
+            else
+                squareIsBusy[x][y].Add(startInterval, new TimeBusy(endInterval, uid));
             return true;
         }
 

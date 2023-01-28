@@ -12,6 +12,7 @@ namespace SkladModel
         public abstract TimeSpan getEndTime();
         public abstract bool CheckReservation();
         public abstract void ReserveRoom();
+        public abstract AntBotAbstractEvent Clone();
     }
 
 }

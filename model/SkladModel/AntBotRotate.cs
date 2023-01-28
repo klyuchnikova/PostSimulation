@@ -6,7 +6,7 @@ namespace SkladModel
 {
     public class AntBotRotate : AntBotAbstractEvent
     {
-
+        public override AntBotAbstractEvent Clone() => new AntBotRotate(antBot);
         public AntBotRotate() { }
         public AntBotRotate(AntBot antBot)
         {

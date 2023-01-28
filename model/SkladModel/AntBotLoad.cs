@@ -4,8 +4,10 @@ using System.Collections.Generic;
 
 namespace SkladModel
 {
-    internal class AntBotLoad : AntBotAbstractEvent
+    public class AntBotLoad : AntBotAbstractEvent
     {
+
+        public override AntBotAbstractEvent Clone() => new AntBotLoad(antBot);
         public AntBotLoad(AntBot antBot)
         {
             this.antBot = antBot;

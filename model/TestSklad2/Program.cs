@@ -61,6 +61,7 @@ namespace TestSklad2
             
             SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
 
+            /*
             while (skladWrapper.Next() && !skladWrapper.isEventCountEmpty())
             {
 
@@ -72,7 +73,7 @@ namespace TestSklad2
             trgBot.commandList.AddCommand(new AntBotRotate(trgBot));
             trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
             trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
-
+            trgBot.commandList.AddCommand(new AntBotWait(trgBot, TimeSpan.FromSeconds(10)));
 
             while (skladWrapper.Next())
             {
@@ -80,10 +81,10 @@ namespace TestSklad2
 
             }
 
+            */
 
 
-
-            //new MoveSort(skladWrapper).Run();
+            new MoveSort(skladWrapper).Run();
 
 
             skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");

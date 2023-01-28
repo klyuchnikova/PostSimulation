@@ -38,6 +38,7 @@ namespace TestSklad2
                     } else
                     {
                         RunToLoadPoint(antBot);
+                        antBot.commandList.AddCommand(new AntBotLoad(antBot));
                     }
                 }
             }
@@ -47,6 +48,7 @@ namespace TestSklad2
         public FibonacciHeap<TimeSpan, CommandList> graph = new FibonacciHeap<TimeSpan, CommandList>(); 
         private void RunToPoint(AntBot antBot, (int x, int y) point, bool isXDirection)
         {
+            antBot.CleanReservation();
             state = new Dictionary<int, Dictionary<int, squareState>>();
             skladLayout = antBot.sklad.skladLayout;
             for (int y = 0; y < skladLayout.Count; y++)
@@ -80,24 +82,34 @@ namespace TestSklad2
                 }
             }
 
+            CommandList cList;
             while (true)
             {
                 NextStep(antBot);
                 if (isXDirection)
                 {
                     if (state[point.x][point.y].xMinTime != TimeSpan.MaxValue)
+                    {
+                        cList = state[point.x][point.y].xCommans;
                         break;
+                    }
                 }
                 else
                 {
                     if (state[point.x][point.y].yMinTime != TimeSpan.MaxValue)
+                    {
+                        cList = state[point.x][point.y].yCommans;
                         break;
+                    }
                 }
             }
-
-     
+            cList.commands.ForEach(c =>
+            {
+                antBot.commandList.AddCommand(c.Ev);
+            });
 
         }
+
         void NextStep(AntBot antBot)
         {
             var gf = graph.Pop();
@@ -147,8 +159,14 @@ namespace TestSklad2
                             state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
                             state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
                             graph.Push(st1.lastTime, st1);
+                            for (int t = 1; t<10; t++)
+                            {
+                                var st2 = st1.Clone();
+                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false);
+                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                                graph.Push(st2.lastTime, st2);
+                            }
                         }
-
                     }
                     else
                     {
@@ -161,12 +179,19 @@ namespace TestSklad2
                             state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
                             state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
                             graph.Push(st1.lastTime, st1);
+                            for (int t = 1; t < 10; t++)
+                            {
+                                var st2 = st1.Clone();
+                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false);
+                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                                graph.Push(st2.lastTime, st2);
+                            }
                         }
                     }
                 }
             }
-            xPrintState();
-            yPrintState();
+            //xPrintState();
+            //yPrintState();
         }
         private void xPrintState()
         {

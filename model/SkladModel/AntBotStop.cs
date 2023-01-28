@@ -12,6 +12,8 @@ namespace SkladModel
 
         public AntBotStop() { }
         bool isLongStop = true;
+
+        public override AntBotAbstractEvent Clone() => new AntBotStop(antBot, isLongStop);
         public AntBotStop(AntBot antBot, bool isLongStop = true)
         {
             this.antBot = antBot;
@@ -49,9 +51,9 @@ namespace SkladModel
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
             antBot.charge -= antBot.sklad.skladConfig.unitStopEnergy;
-            antBot.isFree = true;
             antBot.state = AntBotState.Wait;
             antBot.RemoveFirstCommand(timeSpan);
+            antBot.isFree = (antBot.commandList.commands.Count == 0);
             if (antBot.skladLogger != null)
             {
                 Console.WriteLine($"antBot {antBot.uid} Stop {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");

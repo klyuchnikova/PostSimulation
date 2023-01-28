@@ -57,8 +57,7 @@ namespace SkladModel
             CommandList cl = new CommandList(antBot);
             cl.antState = antState.ShalowClone();
             commands.ForEach(c => {
-                Type type = c.Ev.GetType();
-                var ev = (AntBotAbstractEvent)Activator.CreateInstance(type);
+                var ev = c.Ev.Clone();
                 cl.commands.Add((c.Key, ev));
             });
             cl.lastTime= lastTime;
@@ -268,12 +267,6 @@ namespace SkladModel
             while (isNotBusy(shift, delta)) { shift++; }
 
             return shift;
-            var coord = getShift(shift);
-            TimeSpan startInterval = lastUpdated + TimeSpan.FromSeconds((delta + shift) / sklad.skladConfig.unitSpeed);
-            var pt = sklad.squaresIsBusy.GetPosibleReserve(coord.x, coord.y, startInterval);
-            Console.WriteLine($"{coord.x} {coord.y} {startInterval} {pt}");
-            if ((pt - startInterval).TotalSeconds < 0.2) shift--;
-            return shift>=0? shift : 0;
         }
 
 

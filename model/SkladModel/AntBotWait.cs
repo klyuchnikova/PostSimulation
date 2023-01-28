@@ -7,6 +7,7 @@ namespace SkladModel
     public class AntBotWait : AntBotAbstractEvent
     {
         TimeSpan time;
+        public override AntBotAbstractEvent Clone() => new AntBotWait(antBot, time);
         public AntBotWait(AntBot antBot, TimeSpan time) {
             this.antBot = antBot;
             this.time = time;

@@ -6,6 +6,8 @@ namespace SkladModel
 {
     internal class AntBotCharge : AntBotAbstractEvent
     {
+        public override AntBotAbstractEvent Clone() => new AntBotCharge(antBot);
+
         public AntBotCharge(AntBot antBot)
         {
             this.antBot = antBot;
@@ -40,7 +42,7 @@ namespace SkladModel
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
-            antBot.isFree = true;
+            antBot.isFree = false;
             antBot.state = AntBotState.Charging;
             antBot.RemoveFirstCommand(timeSpan);
             if (antBot.skladLogger != null)

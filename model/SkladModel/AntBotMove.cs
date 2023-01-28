@@ -17,6 +17,7 @@ namespace SkladModel
             this.antBot = antBot;
         }
 
+        public override AntBotAbstractEvent Clone() => new AntBotMove(antBot, numCoord);
         public AntBotMove(AntBot antBot, int numCoord)
         {
             this.antBot = antBot;

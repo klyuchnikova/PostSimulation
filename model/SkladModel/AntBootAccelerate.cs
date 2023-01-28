@@ -9,6 +9,10 @@ namespace SkladModel
     {
         Direction direction;
 
+        public override AntBotAbstractEvent Clone()
+        {
+            return new AntBootAccelerate(antBot, direction);
+        }
         public AntBootAccelerate() { }
         public AntBootAccelerate(AntBot antBot, Direction direction) 
         {
@@ -67,6 +71,7 @@ namespace SkladModel
                 antBot.skladLogger.AddLog(antBot, $"accelerating");
             }
         }
+
     }
 
 }

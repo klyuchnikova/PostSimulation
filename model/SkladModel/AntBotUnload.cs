@@ -6,6 +6,8 @@ namespace SkladModel
 {
     internal class AntBotUnload : AntBotAbstractEvent
     {
+
+        public override AntBotAbstractEvent Clone() => new AntBotUnload(antBot);
         public AntBotUnload(AntBot antBot)
         {
             this.antBot = antBot;

@@ -9,6 +9,8 @@ namespace SkladModel
     {
         int x;
         int y;
+
+        public override AntBotAbstractEvent Clone() => new AntBotCreate(x, y);
         public AntBotCreate(int x, int y)
         {
             this.x = x;
