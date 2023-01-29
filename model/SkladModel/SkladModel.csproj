@@ -83,6 +83,7 @@
     <Compile Include="AntBotCharge.cs" />
     <Compile Include="AntBotClearReservation.cs" />
     <Compile Include="AntBotCreate.cs" />
+    <Compile Include="AntBotEndTask.cs" />
     <Compile Include="AntBotLoad.cs" />
     <Compile Include="AntBotMove.cs" />
     <Compile Include="AntBotNotPosibleMovement.cs" />

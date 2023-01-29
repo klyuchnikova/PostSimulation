@@ -55,6 +55,7 @@ namespace SkladModel
                 antBot.ySpeed = antBot.sklad.skladConfig.unitSpeed;
             antBot.charge -= antBot.sklad.skladConfig.unitAccelerationEnergy;
             antBot.isFree = false;
+            antBot.waitTime = getEndTime();
             antBot.state = AntBotState.Accelerating;
 
 

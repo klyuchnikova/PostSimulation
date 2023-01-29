@@ -37,6 +37,7 @@ namespace SkladModel
             antBot.yCoordinate = antBot.yCord;
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
+            antBot.waitTime = getEndTime();
             antBot.charge -= antBot.sklad.skladConfig.unitRotateEnergy;
             antBot.state = AntBotState.Rotate;
             antBot.isXDirection = !antBot.isXDirection;

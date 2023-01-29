@@ -27,7 +27,8 @@ namespace SkladModel
         Loading = 5,
         Unloading = 6,
         Charging = 7,
-        UnCharged = 8
+        UnCharged = 8, 
+        Work = 9
     }
 
     public enum Direction : int
@@ -190,37 +191,18 @@ namespace SkladModel
                     }
                     return (timeUncharged, new AntBotUnCharging(this));
                 case AntBotState.Accelerating:
-                    var task1 = commandList.commands.First();
-                    return task1;
+                    return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Rotate:
-                    var task2 = commandList.commands.First();
-                    return task2;
+                    return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Charging:
-                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
-                    if (commandList.commands.Count > 0)
-                    {
-                        var task = commandList.commands.First();
-                        if (task.Key < timeUncharged)
-                            return task;
-                    }
-                    return (timeUncharged, new AntBotUnCharging(this));
+                    return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Loading:
-                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
-                    if (commandList.commands.Count > 0)
-                    {
-                        var task = commandList.commands.First();
-                        if (task.Key < timeUncharged)
-                            return task;
-                    }
-                    return (timeUncharged, new AntBotUnCharging(this));
+                    return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Unloading:
+                    return (waitTime, new AntBotEndTask(this));
+                case AntBotState.Work:
                     timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
-                    if (commandList.commands.Count > 0)
-                    {
-                        var task = commandList.commands.First();
-                        if (task.Key < timeUncharged)
-                            return task;
-                    }
+                    return (waitTime, new AntBotEndTask(this));
                     return (timeUncharged, new AntBotUnCharging(this));
 
 

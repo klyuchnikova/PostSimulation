@@ -44,6 +44,7 @@ namespace SkladModel
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
             antBot.isFree = false;
             antBot.state = AntBotState.Charging;
+            antBot.waitTime = getEndTime();
             antBot.RemoveFirstCommand(timeSpan);
             if (antBot.skladLogger != null)
             {
