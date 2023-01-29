@@ -191,19 +191,31 @@ namespace SkladModel
                     }
                     return (timeUncharged, new AntBotUnCharging(this));
                 case AntBotState.Accelerating:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Rotate:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Charging:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Loading:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Unloading:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Work:
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
                     timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
                     return (waitTime, new AntBotEndTask(this));
-                    return (timeUncharged, new AntBotUnCharging(this));
+
 
 
             }

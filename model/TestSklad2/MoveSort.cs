@@ -35,6 +35,7 @@ namespace TestSklad2
 
                     if (antBot.isLoaded) {
                         RunToUnloadPoint(antBot);
+                        antBot.commandList.AddCommand(new AntBotUnload(antBot));
                     } else
                     {
                         RunToLoadPoint(antBot);
@@ -45,10 +46,11 @@ namespace TestSklad2
         }
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
-        public FibonacciHeap<TimeSpan, CommandList> graph = new FibonacciHeap<TimeSpan, CommandList>(); 
+        public FibonacciHeap<TimeSpan, CommandList> graph;
         private void RunToPoint(AntBot antBot, (int x, int y) point, bool isXDirection)
         {
             antBot.CleanReservation();
+            graph = new FibonacciHeap<TimeSpan, CommandList>();
             state = new Dictionary<int, Dictionary<int, squareState>>();
             skladLayout = antBot.sklad.skladLayout;
             for (int y = 0; y < skladLayout.Count; y++)
@@ -233,7 +235,9 @@ namespace TestSklad2
 
 
         void RunToUnloadPoint(AntBot antBot)
-        { 
+        {
+            Random rnd = new Random();
+            int next = rnd.Next(antBot.sklad.target.Count);
             RunToPoint(antBot, antBot.sklad.target[0], false);
         }
     }
