@@ -51,6 +51,7 @@ namespace SkladModel
 
             antBot.RemoveFirstCommand(timeSpan);
             antBot.state = AntBotState.Move;
+            antBot.waitTime = getEndTime();
             if (antBot.skladLogger != null)
             {
                 Console.WriteLine($"antBot {antBot.uid} move coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
