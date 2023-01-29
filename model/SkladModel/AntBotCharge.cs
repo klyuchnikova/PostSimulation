@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SkladModel
 {
-    internal class AntBotCharge : AntBotAbstractEvent
+    public class AntBotCharge : AntBotAbstractEvent
     {
         public override AntBotAbstractEvent Clone() => new AntBotCharge(antBot);
 
@@ -24,8 +24,6 @@ namespace SkladModel
         public override TimeSpan getEndTime()
         {
             return getStartTime() + antBot.getTimeForFullCharge();
-
-
         }
 
         public override void ReserveRoom()
@@ -41,7 +39,6 @@ namespace SkladModel
             antBot.yCoordinate = antBot.yCord;
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
-            antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
             antBot.isFree = false;
             antBot.state = AntBotState.Charging;
             antBot.waitTime = getEndTime();

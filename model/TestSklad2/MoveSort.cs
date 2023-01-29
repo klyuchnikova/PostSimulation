@@ -34,6 +34,13 @@ namespace TestSklad2
                 if (freeAnts.Count> 0)
                 {
                     AntBot antBot = freeAnts[0];
+                    antBot.charge = 100;
+                    if (antBot.charge < 7150)
+                    {
+                        RunToChargePoint(antBot);
+                        antBot.commandList.AddCommand(new AntBotCharge(antBot));
+                        continue;
+                    }
 
                     if (antBot.isLoaded) {
                         RunToUnloadPoint(antBot);
@@ -46,6 +53,9 @@ namespace TestSklad2
                 }
             }
         }
+
+
+
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
         public FibonacciHeap<TimeSpan, CommandList> graph;
@@ -241,6 +251,11 @@ namespace TestSklad2
             Random rnd = new Random();
             int next = rnd.Next(antBot.sklad.target.Count);
             RunToPoint(antBot, antBot.sklad.target[0], false);
+        }
+
+        private void RunToChargePoint(AntBot antBot)
+        {
+            RunToPoint(antBot, antBot.sklad.charge[0], false);
         }
     }
 }

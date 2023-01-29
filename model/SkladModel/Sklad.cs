@@ -20,6 +20,7 @@ namespace SkladModel
 
         public List<(int x, int y)> source = new List<(int x, int y)>();
         public List<(int x, int y)> target = new List<(int x, int y)>();
+        public List<(int x, int y)> charge = new List<(int x, int y)>();
 
         public SkladConfig skladConfig;
         [XmlIgnore]
@@ -54,6 +55,8 @@ namespace SkladModel
                         source.Add((x, y));
                     if (skladLayout[y][x] == 3)
                         target.Add((x, y));
+                    if (skladLayout[y][x] == 4)
+                        charge.Add((x, y));
                     Console.Write(skladLayout[y][x] + " ");
                 }
                 Console.WriteLine();
