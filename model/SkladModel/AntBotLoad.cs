@@ -42,6 +42,7 @@ namespace SkladModel
             antBot.isLoaded = true;
             antBot.RemoveFirstCommand(timeSpan);
             antBot.waitTime = getEndTime();
+            antBot.isFree = (antBot.commandList.commands.Count == 0);
             if (antBot.skladLogger != null)
             {
                 Console.WriteLine($"antBot {antBot.uid} Load {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");

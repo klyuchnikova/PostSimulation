@@ -81,6 +81,7 @@
     <Compile Include="AntBot.cs" />
     <Compile Include="AntBotAbstractEvent.cs" />
     <Compile Include="AntBotCharge.cs" />
+    <Compile Include="AntBotCharged.cs" />
     <Compile Include="AntBotClearReservation.cs" />
     <Compile Include="AntBotCreate.cs" />
     <Compile Include="AntBotEndTask.cs" />

@@ -41,6 +41,7 @@ namespace SkladModel
             antBot.charge -= antBot.sklad.skladConfig.unitRotateEnergy;
             antBot.state = AntBotState.Rotate;
             antBot.isXDirection = !antBot.isXDirection;
+            antBot.isFree = false;
             antBot.RemoveFirstCommand(timeSpan);
             if (antBot.skladLogger != null)
             {

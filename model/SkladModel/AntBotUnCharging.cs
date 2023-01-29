@@ -19,6 +19,7 @@ namespace SkladModel
             antBot.ySpeed = 0;
             antBot.state = AntBotState.UnCharged;
             antBot.waitTime = TimeSpan.MaxValue;
+            antBot.isFree = true;
             Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
             antBot.skladLogger.AddLog(antBot, "UnCharging");
         }

@@ -39,9 +39,9 @@ namespace SkladModel
             antBot.yCoordinate = antBot.yCord;
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
-            antBot.isFree = false;
             antBot.state = AntBotState.Charging;
             antBot.waitTime = getEndTime();
+            antBot.isFree = false;
             antBot.RemoveFirstCommand(timeSpan);
             if (antBot.skladLogger != null)
             {

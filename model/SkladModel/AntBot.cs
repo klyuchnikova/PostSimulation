@@ -196,7 +196,7 @@ namespace SkladModel
                 case AntBotState.Charging:
                     if (charge <= 0)
                         return (lastUpdated, new AntBotUnCharging(this));
-                    return (waitTime, new AntBotEndTask(this));
+                    return (waitTime, new AntBotCharged(this));
                 case AntBotState.Loading:
                     if (charge <= 0)
                         return (lastUpdated, new AntBotUnCharging(this));

@@ -34,8 +34,7 @@ namespace TestSklad2
                 if (freeAnts.Count> 0)
                 {
                     AntBot antBot = freeAnts[0];
-                    antBot.charge = 100;
-                    if (antBot.charge < 7150)
+                    if (antBot.charge < 200)
                     {
                         RunToChargePoint(antBot);
                         antBot.commandList.AddCommand(new AntBotCharge(antBot));
@@ -62,6 +61,11 @@ namespace TestSklad2
         private void RunToPoint(AntBot antBot, (int x, int y) point, bool isXDirection)
         {
             antBot.CleanReservation();
+            if (antBot.commandList.commands.Count != 0)
+            {
+                Console.WriteLine("AXTUNG");
+            }
+
             graph = new FibonacciHeap<TimeSpan, CommandList>();
             state = new Dictionary<int, Dictionary<int, squareState>>();
             skladLayout = antBot.sklad.skladLayout;
@@ -117,10 +121,16 @@ namespace TestSklad2
                     }
                 }
             }
-            cList.commands.ForEach(c =>
+
+
+            if (antBot.commandList.commands.Count != 0)
             {
-                antBot.commandList.AddCommand(c.Ev);
-            });
+                Console.WriteLine("AXTUNG");
+            }
+            for (int i = 0;i<cList.commands.Count;i++)
+            {
+                antBot.commandList.AddCommand(cList.commands[i].Ev);
+            }
 
         }
 
@@ -250,7 +260,7 @@ namespace TestSklad2
         {
             Random rnd = new Random();
             int next = rnd.Next(antBot.sklad.target.Count);
-            RunToPoint(antBot, antBot.sklad.target[0], false);
+            RunToPoint(antBot, antBot.sklad.target[next], false);
         }
 
         private void RunToChargePoint(AntBot antBot)
