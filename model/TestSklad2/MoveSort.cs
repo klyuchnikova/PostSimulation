@@ -28,6 +28,8 @@ namespace TestSklad2
         {
             while (skladWrapper.Next())
             {
+                if (!skladWrapper.isEventCountEmpty())
+                    continue;
                 List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
                 if (freeAnts.Count> 0)
                 {

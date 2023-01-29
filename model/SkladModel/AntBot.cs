@@ -182,14 +182,9 @@ namespace SkladModel
                     }                   
                     return (timeUncharged, new AntBotUnCharging(this));
                 case AntBotState.Move:
-                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitMoveEnergy);
-                    if (commandList.commands.Count > 0)
-                    {
-                        var task = commandList.commands.First();
-                        if (task.Key < timeUncharged)
-                            return task;
-                    }
-                    return (timeUncharged, new AntBotUnCharging(this));
+                    if (charge <= 0)
+                        return (lastUpdated, new AntBotUnCharging(this));
+                    return (waitTime, new AntBotEndTask(this));
                 case AntBotState.Accelerating:
                     if (charge <= 0)
                         return (lastUpdated, new AntBotUnCharging(this));
