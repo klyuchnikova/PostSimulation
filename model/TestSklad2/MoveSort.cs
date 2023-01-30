@@ -58,7 +58,7 @@ namespace TestSklad2
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
         public FibonacciHeap<TimeSpan, CommandList> graph;
-        private void RunToPoint(AntBot antBot, (int x, int y) point, bool isXDirection)
+        private void RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
         {
             antBot.CleanReservation();
 
@@ -100,7 +100,7 @@ namespace TestSklad2
             while (true)
             {
                 NextStep(antBot);
-                if (isXDirection)
+                if (point.isXDirection)
                 {
                     if (state[point.x][point.y].xMinTime != TimeSpan.MaxValue)
                     {
@@ -242,7 +242,7 @@ namespace TestSklad2
 
         void RunToLoadPoint(AntBot antBot)
         {
-            RunToPoint(antBot, antBot.sklad.source[0], true);
+            RunToPoint(antBot, antBot.sklad.source[0]);
         }
 
 
@@ -250,12 +250,12 @@ namespace TestSklad2
         {
             Random rnd = new Random();
             int next = rnd.Next(antBot.sklad.target.Count);
-            RunToPoint(antBot, antBot.sklad.target[next], false);
+            RunToPoint(antBot, antBot.sklad.target[next]);
         }
 
         private void RunToChargePoint(AntBot antBot)
         {
-            RunToPoint(antBot, antBot.sklad.charge[0], false);
+            RunToPoint(antBot, antBot.sklad.charge[0]);
         }
     }
 }
