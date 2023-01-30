@@ -61,10 +61,6 @@ namespace TestSklad2
         private void RunToPoint(AntBot antBot, (int x, int y) point, bool isXDirection)
         {
             antBot.CleanReservation();
-            if (antBot.commandList.commands.Count != 0)
-            {
-                Console.WriteLine("AXTUNG");
-            }
 
             graph = new FibonacciHeap<TimeSpan, CommandList>();
             state = new Dictionary<int, Dictionary<int, squareState>>();
@@ -122,16 +118,10 @@ namespace TestSklad2
                 }
             }
 
-
-            if (antBot.commandList.commands.Count != 0)
-            {
-                Console.WriteLine("AXTUNG");
-            }
             for (int i = 0;i<cList.commands.Count;i++)
             {
                 antBot.commandList.AddCommand(cList.commands[i].Ev);
             }
-
         }
 
         void NextStep(AntBot antBot)

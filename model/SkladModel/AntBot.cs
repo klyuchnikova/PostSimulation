@@ -80,13 +80,15 @@ namespace SkladModel
 
             antState.Update(lastTime);
             abstractEvent.antBot = antState;
-            if (!abstractEvent.CheckReservation())
-            {
-                abstractEvent.CheckReservation();
-                throw new AntBotNotPosibleMovement();
-            }
             if (isNeedReserve)
+            {
+                if (!abstractEvent.CheckReservation())
+                {
+                    abstractEvent.CheckReservation();
+                    throw new AntBotNotPosibleMovement();
+                }
                 abstractEvent.ReserveRoom();
+            }
             commands.Add((lastTime, abstractEvent));
             antState.commandList.commands.Add((lastTime, abstractEvent));        
             abstractEvent.runEvent(null, abstractEvent.getEndTime());
@@ -119,7 +121,8 @@ namespace SkladModel
         public AntBotState state;
         public Sklad sklad;
         public SkladLogger skladLogger;
-
+        [XmlIgnore]
+        public bool isDebug;
         [XmlIgnore]
         public CommandList commandList;
 
@@ -296,7 +299,8 @@ namespace SkladModel
                 throw new AntBotNotPosibleMovement();
             sklad.squaresIsBusy.ReserveRoom(x, y, from, to, uid);         
             reserved.Add((x, y, from, to));
-            Console.WriteLine($"Reserve x:{x}, y:{y} from {from} to {to} uid {uid}");
+            if (isDebug)
+                Console.WriteLine($"Reserve x:{x}, y:{y} from {from} to {to} uid {uid}");
         }
 
 
@@ -313,6 +317,7 @@ namespace SkladModel
             _antBot.sklad = this.sklad;
             _antBot.isXDirection = this.isXDirection;
             _antBot.reserved= this.reserved;
+            _antBot.isDebug= this.isDebug;
             return _antBot;
         }
 

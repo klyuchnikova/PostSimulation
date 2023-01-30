@@ -59,7 +59,7 @@ namespace TestSklad2
 
 
             
-            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml");
+            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml", true);
 
             /*
             while (skladWrapper.Next() && !skladWrapper.isEventCountEmpty())

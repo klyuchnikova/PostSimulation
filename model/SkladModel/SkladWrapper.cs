@@ -32,8 +32,9 @@ namespace SkladModel
             if (isDebug)
                 Console.WriteLine(info);
         }
-        public SkladWrapper(string fileSkladConfig)
+        public SkladWrapper(string fileSkladConfig, bool isDebug = false)
         {
+            this.isDebug = isDebug;
             byte[] fileSkladConfigByte = File.ReadAllBytes(fileSkladConfig);
             SkladConfig skladConfig = Helper.DeserializeXML<SkladConfig>(fileSkladConfigByte);
 
@@ -42,7 +43,7 @@ namespace SkladModel
             foreach (string line in File.ReadLines(skladConfig.antBotLayout))
             {
                 string[] numbers = line.Split(',');
-                AddEvent(TimeSpan.Zero, new AntBotCreate(int.Parse(numbers[0]), int.Parse(numbers[1])));
+                AddEvent(TimeSpan.Zero, new AntBotCreate(int.Parse(numbers[0]), int.Parse(numbers[1]), isDebug));
             }
         }
 
@@ -150,28 +151,6 @@ namespace SkladModel
             return true;
         }
 
-        public void GetPosibleMove(AntBot antBot)
-        {
-            SortedList<TimeSpan, AntBot> dict = new SortedList<TimeSpan, AntBot>();
-            List<int> posibleDir = new List<int> () {0, 1, 2, 3};
-            
-            foreach(var dir in posibleDir)
-            {
-                Direction direction = (Direction)dir;
-                int freePath = getFreePath(antBot, direction, antBot.lastUpdated);
-                for (int i = 1; i <= freePath; i++)
-                {
-                    AntBot ant = antBot.ShalowClone();
-                    if (ant.xSpeed == 0 && ant.ySpeed == 0)
-                        ant.commandList.AddCommand(new AntBootAccelerate(ant, direction));
-                    ant.commandList.AddCommand(new AntBotMove(ant, i));
-                }
-
-            }
-            Console.WriteLine($"Wait {1}");
-            Console.WriteLine($"Rotait {1}");
-
-        }
 
 
 

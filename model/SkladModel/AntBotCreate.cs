@@ -9,12 +9,14 @@ namespace SkladModel
     {
         int x;
         int y;
+        bool isDebug;
 
-        public override AntBotAbstractEvent Clone() => new AntBotCreate(x, y);
-        public AntBotCreate(int x, int y)
+        public override AntBotAbstractEvent Clone() => new AntBotCreate(x, y, isDebug);
+        public AntBotCreate(int x, int y, bool isDebug)
         {
             this.x = x;
             this.y = y;
+            this.isDebug = isDebug; 
         }
 
         public override bool CheckReservation()
@@ -40,6 +42,7 @@ namespace SkladModel
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
             AntBot antBot = new AntBot();
+            antBot.isDebug = isDebug;
             antBot.sklad = (Sklad)objects.First(x=> x is Sklad);
             antBot.xCoordinate = x;
             antBot.yCoordinate = y;
@@ -55,8 +58,12 @@ namespace SkladModel
             antBot.lastUpdated = timeSpan;
             antBot.waitTime = TimeSpan.MaxValue;
             antBot.ReserveRoom(x, y, antBot.lastUpdated, TimeSpan.MaxValue);
-            antBot.skladLogger = (SkladLogger)objects.First(x=> x is SkladLogger);
-            antBot.skladLogger.AddLog(antBot, "Create AntBot");
+            
+            if (isDebug)
+            {
+                antBot.skladLogger = (SkladLogger)objects.First(x => x is SkladLogger);
+                antBot.skladLogger.AddLog(antBot, "Create AntBot");
+            }
             antBot.objects = objects;
             antBot.commandList = new CommandList(antBot);
             objects.Add(antBot);
