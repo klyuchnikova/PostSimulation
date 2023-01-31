@@ -89,6 +89,13 @@ namespace SkladModel
                 }
                 abstractEvent.ReserveRoom();
             }
+            else
+            {
+                if (!abstractEvent.CheckReservation())
+                {
+                    return false;
+                }
+            }
             commands.Add((lastTime, abstractEvent));
             antState.commandList.commands.Add((lastTime, abstractEvent));        
             abstractEvent.runEvent(null, abstractEvent.getEndTime());
@@ -213,9 +220,6 @@ namespace SkladModel
                         return (lastUpdated, new AntBotUnCharging(this));
                     timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
                     return (waitTime, new AntBotEndTask(this));
-
-
-
             }
             return (TimeSpan.MaxValue, null);
         }

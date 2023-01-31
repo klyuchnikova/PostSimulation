@@ -27,8 +27,19 @@ namespace SkladModel
 
         public override bool CheckReservation()
         {
+            for (int shift = 0; shift < numCoord; shift++)
+            {
+                var coord = antBot.getShift(shift);
+
+                TimeSpan startInterval = antBot.lastUpdated + TimeSpan.FromSeconds(shift / antBot.sklad.skladConfig.unitSpeed);
+                double wait = shift < numCoord - 1 ? 2.0 : 1.0;
+                TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(wait / antBot.sklad.skladConfig.unitSpeed);
+                if (!antBot.CheckRoom(coord.x, coord.y, startInterval, endInterval))
+                {
+                    return false;
+                }
+            }
             return true;
-                //antBot.commandList.antState.CheckRoom(getStartTime(), getEndTime());
         }
 
         public override TimeSpan getStartTime() => antBot.lastUpdated;

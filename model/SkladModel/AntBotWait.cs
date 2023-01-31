@@ -35,7 +35,6 @@ namespace SkladModel
             {
                 Console.WriteLine($"antBot {antBot.uid} Wait {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 antBot.skladLogger.AddLog(antBot, "Wait");
-                Console.WriteLine("Wait");
             }
         }
     }

@@ -21,4 +21,5 @@
   <unitCount>1</unitCount>
   <skladLayout>..\..\..\..\..\wms-map.csv</skladLayout>
   <antBotLayout>..\..\..\..\..\wms-robot.csv</antBotLayout>
+  <incomeLayout>..\..\..\..\..\wms-income-1k.txt</incomeLayout>
 </SkladConfig>

@@ -30,5 +30,6 @@ namespace SkladModel
         public int unitCount = 1;
         public string skladLayout;
         public string antBotLayout;
+        public string IncomeLayout;
     }
 }

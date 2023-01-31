@@ -43,11 +43,10 @@ namespace TestSklad2
 
                     if (antBot.isLoaded) {
                         RunToUnloadPoint(antBot);
-                        antBot.commandList.AddCommand(new AntBotUnload(antBot));
                     } else
                     {
                         RunToLoadPoint(antBot);
-                        antBot.commandList.AddCommand(new AntBotLoad(antBot));
+
                     }
                 }
             }
@@ -58,7 +57,7 @@ namespace TestSklad2
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
         public FibonacciHeap<TimeSpan, CommandList> graph;
-        private void RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
+        private bool RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
         {
             antBot.CleanReservation();
 
@@ -97,8 +96,14 @@ namespace TestSklad2
             }
 
             CommandList cList;
+            int count = 0;
             while (true)
             {
+                count++;
+                if (count == 1021)
+                {
+                    Console.WriteLine("HERE BUG");
+                }
                 NextStep(antBot);
                 if (point.isXDirection)
                 {
@@ -116,12 +121,16 @@ namespace TestSklad2
                         break;
                     }
                 }
+                if (graph.Count() == 0)
+                    return false;
             }
+
 
             for (int i = 0;i<cList.commands.Count;i++)
             {
                 antBot.commandList.AddCommand(cList.commands[i].Ev);
             }
+            return true;
         }
 
         void NextStep(AntBot antBot)
@@ -130,27 +139,35 @@ namespace TestSklad2
             var commandList = gf.Value;
             var ant = commandList.antState;
             var st = state[ant.xCord][ant.yCord];
-            if (st.xMinTime < st.yMinTime)
+            if (st.yMinTime > commandList.lastTime)
             {
-                var st1 = st.xCommans.Clone();
-                st1.AddCommand(new AntBotRotate(antBot), false);
-                if (st1.lastTime < st.yMinTime)
+                var st1 = commandList.Clone();
+                if (st1.AddCommand(new AntBotRotate(antBot), false))
                 {
-                    state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
-                    state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
-                    graph.Push(st1.lastTime, st1);
+                    st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                    if (st1.lastTime < st.yMinTime)
+                    {
+                        state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
+                        state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
+                        graph.Push(st1.lastTime, st1);
+                    }
                 }
+
             }
-            if (st.xMinTime > st.yMinTime)
+            if (st.xMinTime > commandList.lastTime)
             {
-                var st1 = st.yCommans.Clone();
-                st1.AddCommand(new AntBotRotate(antBot), false);
-                if (st1.lastTime < st.xMinTime)
+                var st1 = commandList.Clone();
+                if (st1.AddCommand(new AntBotRotate(antBot), false))
                 {
-                    state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
-                    state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
-                    graph.Push(st1.lastTime, st1);
+                    st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                    if (st1.lastTime < st.xMinTime)
+                    {
+                        state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
+                        state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
+                        graph.Push(st1.lastTime, st1);
+                    }
                 }
+
             }
             for (int i = 0; i < 4; i++)
             {
@@ -164,11 +181,11 @@ namespace TestSklad2
                 {
                     if (ant.isXDirection)
                     {
-                        var st1 = st.xCommans.Clone();
+                        var st1 = commandList.Clone();
                         st1.AddCommand(new AntBootAccelerate(antBot, dir), false);
                         st1.AddCommand(new AntBotMove(antBot, dst), false);
                         st1.AddCommand(new AntBotStop(antBot, false), false);
-                        if (state[st1.antState.xCord][st1.antState.yCord].xMinTime > st1.lastTime + TimeSpan.FromSeconds(0.0001))
+                        if (state[st1.antState.xCord][st1.antState.yCord].xMinTime > st1.lastTime + TimeSpan.FromSeconds(0.01))
                         {
                             state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
                             state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
@@ -176,15 +193,21 @@ namespace TestSklad2
                             for (int t = 1; t<10; t++)
                             {
                                 var st2 = st1.Clone();
-                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false);
-                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                                graph.Push(st2.lastTime, st2);
+                                if (st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false))
+                                {
+                                    st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                                    graph.Push(st2.lastTime, st2);
+                                } else
+                                {
+                                    break;
+                                }
+
                             }
                         }
                     }
                     else
                     {
-                        var st1 = st.yCommans.Clone();
+                        var st1 = commandList.Clone();
                         st1.AddCommand(new AntBootAccelerate(antBot, dir), false);
                         st1.AddCommand(new AntBotMove(antBot, dst), false);
                         st1.AddCommand(new AntBotStop(antBot, false), false);
@@ -196,9 +219,15 @@ namespace TestSklad2
                             for (int t = 1; t < 10; t++)
                             {
                                 var st2 = st1.Clone();
-                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false);
-                                st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                                graph.Push(st2.lastTime, st2);
+                                if (st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false))
+                                {
+                                    st2.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
+                                    graph.Push(st2.lastTime, st2);
+                                } else
+                                {
+                                    break;
+                                }
+
                             }
                         }
                     }
@@ -242,7 +271,9 @@ namespace TestSklad2
 
         void RunToLoadPoint(AntBot antBot)
         {
-            RunToPoint(antBot, antBot.sklad.source[0]);
+            TimeSpan end;
+            if (RunToPoint(antBot, antBot.sklad.source[0]))
+                antBot.commandList.AddCommand(new AntBotLoad(antBot));
         }
 
 
@@ -250,7 +281,8 @@ namespace TestSklad2
         {
             Random rnd = new Random();
             int next = rnd.Next(antBot.sklad.target.Count);
-            RunToPoint(antBot, antBot.sklad.target[next]);
+            if (RunToPoint(antBot, antBot.sklad.target[next])) 
+                antBot.commandList.AddCommand(new AntBotUnload(antBot));
         }
 
         private void RunToChargePoint(AntBot antBot)

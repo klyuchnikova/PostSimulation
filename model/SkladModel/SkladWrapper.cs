@@ -150,10 +150,6 @@ namespace SkladModel
             }
             return true;
         }
-
-
-
-
     }
    
 }
