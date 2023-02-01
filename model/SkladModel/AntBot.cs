@@ -258,6 +258,12 @@ namespace SkladModel
 
         public int getFreePath()
         {
+
+            TimeSpan startInterval = lastUpdated;
+            TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(1.0 / sklad.skladConfig.unitSpeed);
+            if (sklad.squaresIsBusy.CheckIsBusy(xCord, yCord, startInterval, endInterval, uid))
+                return 0;
+
             double delta = getDelta();
             int shift = 0;
             while (isNotBusy(shift, delta)) { shift++; }

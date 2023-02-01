@@ -33,6 +33,9 @@ namespace TestSklad2
                 if (!skladWrapper.isEventCountEmpty())
                     continue;
 
+                if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
+                    break;
+
                 RunToLoadPoint(skladWrapper.GetFreeUnloadedAnts());
             }
         }
