@@ -22,9 +22,13 @@ namespace SkladModel
             antBot.isFree = false;
             antBot.commandList = new CommandList(antBot);
             antBot.CleanReservation();
-            antBot.ReserveRoom(antBot.lastUpdated, TimeSpan.MaxValue);
-            Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
-            antBot.skladLogger.AddLog(antBot, "UnCharging");
+            //antBot.ReserveRoom(antBot.lastUpdated, TimeSpan.MaxValue);
+
+            if (antBot.skladLogger != null)
+            {
+                Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
+                antBot.skladLogger.AddLog(antBot, "UnCharging");
+            }
         }
     }
 

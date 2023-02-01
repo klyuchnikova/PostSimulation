@@ -10,6 +10,7 @@ using System.Xml;
 using System;
 using Object = UnityEngine.Object;
 using Unity.VisualScripting;
+using ControlModel;
 
 public class main : MonoBehaviour
 {
@@ -24,47 +25,20 @@ public class main : MonoBehaviour
     Dictionary<string, AntBotUnity> antsBot = new Dictionary<string, AntBotUnity>();
     private SkladWrapper skladWrapper;
     Sklad sklad;
-    private SkladLogger logger;
     DateTime startTime;
     AntStateChange asc;
     public Transform panel;
+    List<AntStateChange> logs;
 
     // Start is called before the first frame update
     void Start()
     {
         System.Random rnd = new System.Random(DateTime.Now.Millisecond);
         SkladWrapper skladWrapper = new SkladWrapper(@"wms-config.xml");
-        while (skladWrapper.Next())
-        {
-            List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
-            if (freeAnts.Count > 0 && skladWrapper.isEventCountEmpty())
-            {
-                foreach(AntBot ant in freeAnts)
-                {
-                    if (ant.charge > 7000)
-                        if (ant.commandList.commands.Count == 0)
-                        {
-                            Direction dir = (Direction)rnd.Next(0, 4);
-                            int pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
-                            int count = 0;
-                            while (pm == 0)
-                            {
-                                count++;
-                                if (count > 10)
-                                    break;
-                                dir = (Direction)rnd.Next(0, 4);
-                                pm = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
-                            }
-                            if (pm != 0)
-                            {
-                                skladWrapper.Move(ant, dir, pm);
-                                break;
-                            }
-                        }
-                }
-
-            }
-        }
+        skladWrapper.Next();
+        skladWrapper.Next();
+        File.ReadAllBytes("../log_unity.xml");
+        logs = SkladWrapper.DeserializeXML<List<AntStateChange>>(File.ReadAllBytes("../log_unity.xml"));
 
         sklad = (Sklad) skladWrapper.objects.First(x=>x is Sklad);
 
@@ -79,15 +53,14 @@ public class main : MonoBehaviour
             }
         }
         startTime = DateTime.Now;
-        logger = (SkladLogger)skladWrapper.objects.First(x=>x is SkladLogger);
-        asc = logger.logs.First();
+        asc = logs.First();
     }
     void Update()
     {
         TimeSpan current = DateTime.Now - startTime;
         if (current > asc.lastUpdated) 
         {
-            logger.logs.Remove(asc);
+            logs.Remove(asc);
             if (asc.command == "Create AntBot")
             {
                 Transform ab = Instantiate(AntBotTransform);
@@ -101,7 +74,7 @@ public class main : MonoBehaviour
             {
                 antsBot[asc.uid].antStateChange = asc;
             }
-            asc = logger.logs.First();
+            asc = logs.First();
         }
     }
 }

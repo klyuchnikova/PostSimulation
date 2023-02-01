@@ -69,7 +69,7 @@ namespace SkladModel
 
         public static SkladLogger loadLogger(string fileName)
         {
-            byte[] bytes_xml = File.ReadAllBytes(@"C:\SKLAD\log.xml");
+            byte[] bytes_xml = File.ReadAllBytes(fileName);
             IExtendedXmlSerializer serializer = new ConfigurationContainer().UseOptimizedNamespaces().Create();
             MemoryStream contentStream = new MemoryStream(bytes_xml);
             return serializer.Deserialize<SkladLogger>(new XmlReaderSettings { /* ... */ }, contentStream);

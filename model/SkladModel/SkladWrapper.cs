@@ -13,6 +13,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Xml.Serialization;
 
 namespace SkladModel
 {
@@ -161,6 +162,26 @@ namespace SkladModel
             return true;
         }
 
+        public static byte[] SerializeXML<T>(T stamp)
+        {
+            XmlSerializer formatter = new XmlSerializer(typeof(T));
+            MemoryStream stream = new MemoryStream();
+            formatter.Serialize(stream, stamp);
+            return stream.ToArray();
+        }
+
+        public static void DeserializeXML<T>(byte[] binaryData, out T stamp)
+        {
+            XmlSerializer formatter = new XmlSerializer(typeof(T));
+            MemoryStream ms = new MemoryStream(binaryData);
+            stamp = (T)formatter.Deserialize(ms);
+        }
+        public static T DeserializeXML<T>(byte[] binaryData)
+        {
+            var formatter = new XmlSerializer(typeof(T));
+            var ms = new MemoryStream(binaryData);
+            return (T)formatter.Deserialize(ms);
+        }
 
     }
    
