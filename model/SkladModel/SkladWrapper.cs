@@ -57,6 +57,16 @@ namespace SkladModel
             return GetAllAnts().FindAll(x => x.isFree);
         }
 
+        public List<AntBot> GetFreeUnloadedAnts()
+        {
+            return GetAllAnts().FindAll(x => x.isFree && !x.isLoaded);
+        }
+
+        public List<AntBot> GetFreeLoadedAnts()
+        {
+            return GetAllAnts().FindAll(x => x.isFree && x.isLoaded);
+        }
+
         public void SaveLog(string fileName)
         {
             SkladLogger logger = (SkladLogger)objects.First(x => x is SkladLogger);
@@ -150,6 +160,8 @@ namespace SkladModel
             }
             return true;
         }
+
+
     }
    
 }

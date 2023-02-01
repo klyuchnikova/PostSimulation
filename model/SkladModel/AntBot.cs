@@ -299,8 +299,12 @@ namespace SkladModel
         }
         public void ReserveRoom(int x, int y, TimeSpan from, TimeSpan to)
         {
-            if (!CheckRoom(x, y, from, to))
+            if (!CheckRoom(x, y, from, to)) 
+            {
+                sklad.squaresIsBusy.PrintRoom(x, y);
                 throw new AntBotNotPosibleMovement();
+            }
+                
             sklad.squaresIsBusy.ReserveRoom(x, y, from, to, uid);         
             reserved.Add((x, y, from, to));
             if (isDebug)

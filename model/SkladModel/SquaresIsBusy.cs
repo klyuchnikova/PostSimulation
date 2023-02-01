@@ -37,11 +37,22 @@ namespace SkladModel
             }
         }
 
+        public void ReserveUpTo(int x, int y, TimeSpan endInterval, string uid)
+        {
+            if (squareIsBusy[x][y].Count > 0)
+            {
+                TimeSpan startInterval = squareIsBusy[x][y].Last().Value.endTime;
+                ReserveRoom(x, y, startInterval, endInterval, uid);
+            }
+            else
+                ReserveRoom(x, y, TimeSpan.Zero, endInterval, uid);
+        }
+
         private bool IsCross(TimeSpan from1, TimeSpan to1, TimeSpan from2, TimeSpan to2)
         {
             var intersectionFrom = from1 > from2 ? from1 : from2;
             var intersectionTo = to1 < to2 ? to1 : to2;
-            return intersectionFrom < intersectionTo; 
+            return intersectionTo - intersectionFrom > TimeSpan.FromSeconds(0.001); 
         }
 
         public bool CheckIsBusy(int x, int y, TimeSpan startInterval, TimeSpan endInterval, string uid)
@@ -75,7 +86,13 @@ namespace SkladModel
         public void UnReserveRoom(int x, int y, TimeSpan time)
         {
             squareIsBusy[x][y].Remove(time);
-            //Console.WriteLine($"unreserve {x} {y} {time}");
+        }
+        public void PrintRoom(int x, int y)
+        {
+            foreach(var sq in squareIsBusy[x][y])
+            {
+                Console.WriteLine($"{sq.Value.uid}, {sq.Key}, {sq.Value.endTime}");
+            }
         }
 
     }

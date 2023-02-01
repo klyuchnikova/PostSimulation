@@ -19,7 +19,10 @@ namespace SkladModel
             antBot.ySpeed = 0;
             antBot.state = AntBotState.UnCharged;
             antBot.waitTime = TimeSpan.MaxValue;
-            antBot.isFree = true;
+            antBot.isFree = false;
+            antBot.commandList = new CommandList(antBot);
+            antBot.CleanReservation();
+            antBot.ReserveRoom(antBot.lastUpdated, TimeSpan.MaxValue);
             Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
             antBot.skladLogger.AddLog(antBot, "UnCharging");
         }

@@ -1,7 +1,9 @@
 ﻿using ExtendedXmlSerializer.Core.Sources;
 using SkladModel;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using static SkladModel.SquaresIsBusy;
@@ -30,37 +32,93 @@ namespace TestSklad2
             {
                 if (!skladWrapper.isEventCountEmpty())
                     continue;
-                List<AntBot> freeAnts = skladWrapper.GetFreeAnts();
-                if (freeAnts.Count> 0)
+
+                RunToLoadPoint(skladWrapper.GetFreeUnloadedAnts());
+            }
+        }
+
+        void RunToLoadPoint(List<AntBot> freeAnts)
+        {
+            (AntBot bot, CommandList cList, TimeSpan minTime) minBotPath = (null, null, TimeSpan.MaxValue);
+            freeAnts.ForEach(freeAnt => {
+                freeAnt.sklad.source.ForEach(source =>
                 {
-                    AntBot antBot = freeAnts[0];
-                    if (antBot.charge < 200)
+                    var gp = getPath(freeAnt, source);
+                    if (gp.isPathExist)
                     {
-                        RunToChargePoint(antBot);
-                        antBot.commandList.AddCommand(new AntBotCharge(antBot));
-                        continue;
+                        if (gp.cList.lastTime < minBotPath.minTime)
+                        {
+                            minBotPath.minTime = gp.cList.lastTime;
+                            minBotPath.bot = freeAnt;
+                            minBotPath.cList = gp.cList;
+                        }
                     }
-
-                    if (antBot.isLoaded) {
-                        RunToUnloadPoint(antBot);
-                    } else
+                });
+            });
+            if (minBotPath.minTime < TimeSpan.MaxValue)
+            {
+                AntBot bot = minBotPath.bot;
+                if (minBotPath.cList.AddCommand(new AntBotLoad(bot), false))
+                {
+                    AntBot clone = minBotPath.cList.antState.ShalowClone();
+                    clone.lastUpdated = minBotPath.cList.lastTime;
+                    Random rnd = new Random();
+                    int next = rnd.Next(bot.sklad.target.Count);
+                    var gp = getPath(clone, bot.sklad.target[next]);
+                    if (gp.isPathExist)
                     {
-                        RunToLoadPoint(antBot);
-
+                        if (gp.cList.AddCommand(new AntBotUnload(minBotPath.bot), false))
+                        {
+                            TimeSpan reserveTimeForLeave = TimeSpan.FromSeconds(
+                                bot.sklad.skladConfig.unitRotateTime +
+                                1.0 / bot.sklad.skladConfig.unitSpeed);
+                            if (gp.cList.antState.CheckRoom(minBotPath.cList.lastTime,
+                                gp.cList.lastTime + reserveTimeForLeave))
+                            {
+                                gp.cList.commands.ForEach(c => c.Ev.antBot = bot);
+                                minBotPath.cList.commands.AddRange(gp.cList.commands);
+                                applyPath(bot, minBotPath.cList);
+                                bot.ReserveRoom(gp.cList.antState.xCord, gp.cList.antState.yCord,
+                                    minBotPath.cList.lastTime,
+                                    gp.cList.lastTime + reserveTimeForLeave);
+                            }
+                        }
                     }
                 }
             }
         }
 
-
+        void RunToUnloadPoint(AntBot antBot)
+        {
+            Random rnd = new Random();
+            int next = rnd.Next(antBot.sklad.target.Count);
+            if (RunToPoint(antBot, antBot.sklad.target[next]))
+                antBot.commandList.AddCommand(new AntBotUnload(antBot));
+        }
 
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
         public FibonacciHeap<TimeSpan, CommandList> graph;
         private bool RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
         {
-            antBot.CleanReservation();
+            (bool isPathExist, CommandList cList) = getPath(antBot, point);
+            if (!isPathExist) return false;
+            applyPath(antBot, cList);
+            return true;
+        }
 
+        private void applyPath(AntBot antBot, CommandList cList)
+        {
+            antBot.CleanReservation();
+            for (int i = 0; i < cList.commands.Count; i++)
+            {
+                antBot.commandList.AddCommand(cList.commands[i].Ev);
+            }
+        }
+
+        private (bool isPathExist, CommandList cList) getPath(AntBot antBot, (int x, int y, bool isXDirection) point)
+        {
+            CommandList cList;
             graph = new FibonacciHeap<TimeSpan, CommandList>();
             state = new Dictionary<int, Dictionary<int, squareState>>();
             skladLayout = antBot.sklad.skladLayout;
@@ -95,15 +153,8 @@ namespace TestSklad2
                 }
             }
 
-            CommandList cList;
-            int count = 0;
             while (true)
             {
-                count++;
-                if (count == 1021)
-                {
-                    Console.WriteLine("HERE BUG");
-                }
                 NextStep(antBot);
                 if (point.isXDirection)
                 {
@@ -122,15 +173,9 @@ namespace TestSklad2
                     }
                 }
                 if (graph.Count() == 0)
-                    return false;
+                    return (false, null);
             }
-
-
-            for (int i = 0;i<cList.commands.Count;i++)
-            {
-                antBot.commandList.AddCommand(cList.commands[i].Ev);
-            }
-            return true;
+            return (true, cList);
         }
 
         void NextStep(AntBot antBot)
@@ -269,21 +314,11 @@ namespace TestSklad2
         }
 
 
-        void RunToLoadPoint(AntBot antBot)
-        {
-            TimeSpan end;
-            if (RunToPoint(antBot, antBot.sklad.source[0]))
-                antBot.commandList.AddCommand(new AntBotLoad(antBot));
-        }
 
 
-        void RunToUnloadPoint(AntBot antBot)
-        {
-            Random rnd = new Random();
-            int next = rnd.Next(antBot.sklad.target.Count);
-            if (RunToPoint(antBot, antBot.sklad.target[next])) 
-                antBot.commandList.AddCommand(new AntBotUnload(antBot));
-        }
+
+
+
 
         private void RunToChargePoint(AntBot antBot)
         {

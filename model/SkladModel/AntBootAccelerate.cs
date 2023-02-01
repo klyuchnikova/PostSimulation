@@ -22,7 +22,7 @@ namespace SkladModel
 
         public override bool CheckReservation()
         {
-            return true;
+            return antBot.CheckRoom(getStartTime(), getEndTime());
         }
 
         public override TimeSpan getStartTime() => antBot.lastUpdated;
