@@ -66,31 +66,30 @@ public class main : MonoBehaviour
         TimeSpan current = DateTime.Now - startTime;
         if (current.TotalSeconds > asc.lastUpdated) 
         {
-            count++;
-            //Debug.Log(logs[count].id + " " + logs[count].lastUpdated);
-            if (asc.command == "Create AntBot")
+            double lastUpdated = asc.lastUpdated;
+            do
             {
-                Transform ab = Instantiate(AntBotTransform);
-                ab.SetParent(panel);
-                antsBot.Add(asc.uid, ab.GetComponent<AntBotUnity>());
-                antsBot[asc.uid].antStateChange = asc;
-                antsBot[asc.uid].SetPosition();
-                antsBot[asc.uid].startTime = startTime;
-            }
-            else
-            {
-                antsBot[asc.uid].antStateChange = asc;
-            }
+                if (asc.command == "Create AntBot")
+                {
+                    Transform ab = Instantiate(AntBotTransform);
+                    ab.SetParent(panel);
+                    antsBot.Add(asc.uid, ab.GetComponent<AntBotUnity>());
+                    antsBot[asc.uid].antStateChange = asc;
+                    antsBot[asc.uid].SetPosition();
+                    antsBot[asc.uid].startTime = startTime;
+                }
+                else
+                {
+                    antsBot[asc.uid].antStateChange = asc;
+                }
 
-            if (asc.command == "Rotate")
-            {
-                StartCoroutine(antsBot[asc.uid].RotateMe(new Vector3(0, 0, 90), 4));
-            }
-
-
-
-
+                if (asc.command == "Rotate")
+                {
+                    StartCoroutine(antsBot[asc.uid].RotateMe(new Vector3(0, 0, 90), 4));
+                }
+                count++;
                 asc = logs[count];
+            } while (asc.lastUpdated == lastUpdated);
         }
     }
 }
