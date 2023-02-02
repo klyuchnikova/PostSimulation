@@ -189,6 +189,7 @@ namespace ControlModel
 
         void NextStep(AntBot antBot)
         {
+            int deep = 0;
             var gf = graph.Pop();
             var commandList = gf.Value;
             var ant = commandList.antState;
@@ -244,7 +245,7 @@ namespace ControlModel
                             state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
                             state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
                             graph.Push(st1.lastTime, st1);
-                            for (int t = 1; t<10; t++)
+                            for (int t = 1; t<deep; t++)
                             {
                                 var st2 = st1.Clone();
                                 if (st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false))
@@ -270,7 +271,7 @@ namespace ControlModel
                             state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
                             state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
                             graph.Push(st1.lastTime, st1);
-                            for (int t = 1; t < 10; t++)
+                            for (int t = 1; t < deep; t++)
                             {
                                 var st2 = st1.Clone();
                                 if (st2.AddCommand(new AntBotWait(antBot, TimeSpan.FromSeconds(i * 1.0 / antBot.sklad.skladConfig.unitSpeed)), false))
