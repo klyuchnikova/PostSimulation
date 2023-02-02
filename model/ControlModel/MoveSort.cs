@@ -19,7 +19,7 @@ namespace ControlModel
     public class MoveSort
     {
         SkladWrapper skladWrapper;
-        
+        TimeSpan maxTime = TimeSpan.MaxValue;
 
         public MoveSort(SkladWrapper skladWrapper) { 
             this.skladWrapper = skladWrapper;
@@ -27,10 +27,17 @@ namespace ControlModel
 
         public void Run()
         {
+            Run(TimeSpan.MaxValue);
+        }
+        public void Run(TimeSpan maxModelTime)
+        {
             while (skladWrapper.Next())
             {
                 if (!skladWrapper.isEventCountEmpty())
                     continue;
+
+                if (skladWrapper.updatedTime > maxModelTime)
+                    break;
 
                 if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
                     break;

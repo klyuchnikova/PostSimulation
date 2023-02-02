@@ -4,6 +4,7 @@ using ExtendedXmlSerializer.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Xml;
 
 namespace SkladModel
@@ -12,7 +13,7 @@ namespace SkladModel
     public class AntStateChange
     {
         public AntStateChange() { }
-        public AntStateChange(AntBot antBot, string command) 
+        public AntStateChange(AntBot antBot, string command, int id) 
         {
             xCoordinate= antBot.xCoordinate;
             yCoordinate= antBot.yCoordinate;
@@ -22,9 +23,10 @@ namespace SkladModel
             charge= antBot.charge;
             isLoaded= antBot.isLoaded;
             uid= antBot.uid;
-            lastUpdated= antBot.lastUpdated;
+            lastUpdated= antBot.lastUpdated.TotalSeconds;
             state= antBot.state;
             this.command= command;
+            this.id= id;
         }
         public double xCoordinate;
         public double yCoordinate;
@@ -34,9 +36,10 @@ namespace SkladModel
         public double charge;
         public bool isLoaded;
         public string uid;
-        public TimeSpan lastUpdated;
+        public double lastUpdated;
         public AntBotState state;
         public string command;
+        public int id;
     }
 
 
@@ -44,13 +47,15 @@ namespace SkladModel
     {
         public Sklad sklad;
         public List<AntStateChange> logs = new List<AntStateChange>();
+        public int count = 0;
         public void AddLog(AbstractObject obj, string command) 
         {
             if (obj is Sklad)
                 sklad = (Sklad)obj;
             if (obj is AntBot)
             {
-                logs.Add(new AntStateChange((AntBot)obj, command));
+                logs.Add(new AntStateChange((AntBot)obj, command, count));
+                count++;
             }
             
         }

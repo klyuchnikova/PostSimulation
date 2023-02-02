@@ -18,7 +18,7 @@ public class AntBotUnity : MonoBehaviour
 
     public void SetPosition(Vector2 vector2)
     {
-        transform.SetPositionAndRotation(vector2, Quaternion.identity);
+        transform.position = vector2;
     }
     // Start is called before the first frame update
     void Start()
@@ -26,10 +26,21 @@ public class AntBotUnity : MonoBehaviour
         
     }
 
+    public IEnumerator RotateMe(Vector3 byAngles, float inTime)
+    {
+        var fromAngle = transform.rotation;
+        var toAngle = Quaternion.Euler(transform.eulerAngles + byAngles);
+        for (var t = 0f; t < 1; t += Time.deltaTime / inTime)
+        {
+            transform.rotation = Quaternion.Lerp(fromAngle, toAngle, t);
+            yield return null;
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
-        double shift = (DateTime.Now - startTime - antStateChange.lastUpdated).TotalSeconds;
+        double shift = (DateTime.Now - startTime).TotalSeconds - antStateChange.lastUpdated;
         if (antStateChange.xSpeed != 0 || antStateChange.ySpeed != 0)
         {
             SetPosition(main.getPosition((antStateChange.xCoordinate + antStateChange.xSpeed * shift),

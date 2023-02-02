@@ -28,17 +28,21 @@ public class main : MonoBehaviour
     DateTime startTime;
     AntStateChange asc;
     public Transform panel;
-    List<AntStateChange> logs;
+    AntStateChange[] logs;
 
     // Start is called before the first frame update
     void Start()
     {
         System.Random rnd = new System.Random(DateTime.Now.Millisecond);
-        SkladWrapper skladWrapper = new SkladWrapper(@"wms-config.xml");
-        skladWrapper.Next();
-        skladWrapper.Next();
-        File.ReadAllBytes("../log_unity.xml");
-        logs = SkladWrapper.DeserializeXML<List<AntStateChange>>(File.ReadAllBytes("../log_unity.xml"));
+        SkladWrapper skladWrapper = new SkladWrapper(@"wms-config.xml", false);
+        skladWrapper.AddLogger();
+        skladWrapper.AddSklad();
+        skladWrapper.AddAnts();
+        new MoveSort(skladWrapper).Run(TimeSpan.FromSeconds(0));
+        //SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
+        //logs = logger.logs.ToArray();
+        logs = SkladWrapper.DeserializeXML<AntStateChange[]>(File.ReadAllBytes("log_unity.xml"));
+
 
         sklad = (Sklad) skladWrapper.objects.First(x=>x is Sklad);
 
@@ -53,14 +57,17 @@ public class main : MonoBehaviour
             }
         }
         startTime = DateTime.Now;
-        asc = logs.First();
+        asc = logs[0];
     }
+
+    int count = 0;
     void Update()
     {
         TimeSpan current = DateTime.Now - startTime;
-        if (current > asc.lastUpdated) 
+        if (current.TotalSeconds > asc.lastUpdated) 
         {
-            logs.Remove(asc);
+            count++;
+            //Debug.Log(logs[count].id + " " + logs[count].lastUpdated);
             if (asc.command == "Create AntBot")
             {
                 Transform ab = Instantiate(AntBotTransform);
@@ -74,7 +81,16 @@ public class main : MonoBehaviour
             {
                 antsBot[asc.uid].antStateChange = asc;
             }
-            asc = logs.First();
+
+            if (asc.command == "Rotate")
+            {
+                StartCoroutine(antsBot[asc.uid].RotateMe(new Vector3(0, 0, 90), 4));
+            }
+
+
+
+
+                asc = logs[count];
         }
     }
 }

@@ -65,9 +65,13 @@ namespace SkladModel
             antBot.waitTime = getEndTime();
             if (antBot.skladLogger != null)
             {
-                Console.WriteLine($"antBot {antBot.uid} move coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 antBot.skladLogger.AddLog(antBot, $"Move");
+                if (antBot.isDebug)
+                {
+                    Console.WriteLine($"antBot {antBot.uid} move coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
+                }
             }
+
         }
     }
 

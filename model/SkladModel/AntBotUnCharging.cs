@@ -26,9 +26,13 @@ namespace SkladModel
 
             if (antBot.skladLogger != null)
             {
-                Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
                 antBot.skladLogger.AddLog(antBot, "UnCharging");
+                if (antBot.isDebug)
+                {
+                    Console.WriteLine($"antBot {antBot.uid} uncharged {antBot.lastUpdated}");
+                }
             }
+
         }
     }
 

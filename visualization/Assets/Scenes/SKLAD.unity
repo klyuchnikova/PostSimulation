@@ -257,6 +257,9 @@ MonoBehaviour:
   - {fileID: 3805915940293972603, guid: 0bbcc5e90d5e2ea48abaac19f9de6c58, type: 3}
   - {fileID: 2755411347603964765, guid: f638c16fbc207324ab5ef1aeee70c6c7, type: 3}
   - {fileID: 1096967124795513178, guid: b57df78d6ab1cad448e04f5714ec948e, type: 3}
+  - {fileID: 3805915940293972603, guid: 0bbcc5e90d5e2ea48abaac19f9de6c58, type: 3}
+  - {fileID: 2755411347603964765, guid: f638c16fbc207324ab5ef1aeee70c6c7, type: 3}
+  - {fileID: 1096967124795513178, guid: b57df78d6ab1cad448e04f5714ec948e, type: 3}
   AntBotTransform: {fileID: 3280515893649349108, guid: 8d313fd6e1382da45bd13ee01a183701, type: 3}
   panel: {fileID: 1666581360}
 --- !u!1 &1382004712

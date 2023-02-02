@@ -68,9 +68,13 @@ namespace SkladModel
 
             if (antBot.skladLogger != null)
             {
-                Console.WriteLine($"antBot {antBot.uid} accelerating{direction} {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 antBot.skladLogger.AddLog(antBot, $"accelerating");
+                if (antBot.isDebug)
+                {
+                    Console.WriteLine($"antBot {antBot.uid} accelerating{direction} {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
+                }
             }
+
         }
 
     }

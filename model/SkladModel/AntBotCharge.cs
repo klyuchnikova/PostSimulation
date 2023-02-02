@@ -45,9 +45,13 @@ namespace SkladModel
             antBot.RemoveFirstCommand(timeSpan);
             if (antBot.skladLogger != null)
             {
-                Console.WriteLine($"antBot {antBot.uid} Charging {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 antBot.skladLogger.AddLog(antBot, "Charging");
+                if (antBot.isDebug)
+                {
+                    Console.WriteLine($"antBot {antBot.uid} Charging {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
+                }
             }
+
         }
     }
 }

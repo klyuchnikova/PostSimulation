@@ -59,16 +59,15 @@ namespace SkladModel
             antBot.waitTime = TimeSpan.MaxValue;
             antBot.ReserveRoom(x, y, antBot.lastUpdated, TimeSpan.MaxValue);
             
-            if (isDebug)
-            {
+            if (objects.Exists(x => x is SkladLogger)) {
                 antBot.skladLogger = (SkladLogger)objects.First(x => x is SkladLogger);
                 antBot.skladLogger.AddLog(antBot, "Create AntBot");
             }
             antBot.objects = objects;
             antBot.commandList = new CommandList(antBot);
             objects.Add(antBot);
-            
-            Console.WriteLine($"antBot {antBot.uid} created {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
+            if (isDebug)
+                Console.WriteLine($"antBot {antBot.uid} created {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
         }
     }
 

@@ -20,6 +20,7 @@ namespace SkladModel
     public class SkladWrapper : AbstractWrapper
     {
         public bool isDebug = false;
+        SkladConfig skladConfig;
 
         public bool isEventCountEmpty()
         {
@@ -33,19 +34,36 @@ namespace SkladModel
             if (isDebug)
                 Console.WriteLine(info);
         }
-        public SkladWrapper(string fileSkladConfig, bool isDebug = false)
-        {
-            this.isDebug = isDebug;
-            byte[] fileSkladConfigByte = File.ReadAllBytes(fileSkladConfig);
-            SkladConfig skladConfig = Helper.DeserializeXML<SkladConfig>(fileSkladConfigByte);
 
+
+        public void AddLogger()
+        {
             AddEvent(TimeSpan.Zero, new SkladLoggerCreate());
+        }
+
+        public void AddSklad()
+        {
             AddEvent(TimeSpan.Zero, new SkladCreate(skladConfig));
+        }
+
+        public void AddAnts(int numRobots)
+        {
+            int count = 0;
             foreach (string line in File.ReadLines(skladConfig.antBotLayout))
             {
                 string[] numbers = line.Split(',');
                 AddEvent(TimeSpan.Zero, new AntBotCreate(int.Parse(numbers[0]), int.Parse(numbers[1]), isDebug));
+                count++;
+                if (count == numRobots)
+                    break;
             }
+        }
+
+        public SkladWrapper(string fileSkladConfig, bool isDebug = false)
+        {
+            this.isDebug = isDebug;
+            byte[] fileSkladConfigByte = File.ReadAllBytes(fileSkladConfig);
+            skladConfig = Helper.DeserializeXML<SkladConfig>(fileSkladConfigByte);
         }
 
         public List<AntBot> GetAllAnts()
