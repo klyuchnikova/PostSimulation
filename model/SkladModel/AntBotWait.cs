@@ -31,6 +31,7 @@ namespace SkladModel
             antBot.state = AntBotState.Work;
             antBot.waitTime = timeSpan + time;
             antBot.RemoveFirstCommand(timeSpan);
+            antBot.isFree = (antBot.commandList.commands.Count == 0);
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Wait");
