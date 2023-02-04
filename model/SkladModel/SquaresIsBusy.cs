@@ -79,9 +79,30 @@ namespace SkladModel
         {
             if (CheckIsBusy(x, y, from, from, ""))
                 return TimeSpan.Zero;
-            var first = squareIsBusy[x][y].FirstOrDefault(t => t.Key > from);
+            var first = squareIsBusy[x][y].FirstOrDefault(t => t.Value.endTime > from);
             return first.Key == TimeSpan.Zero? TimeSpan.MaxValue : first.Key;
         }
+
+        public TimeSpan GetNearestReserve(int x, int y, TimeSpan from)
+        {
+            TimeSpan posibleTime = from;
+            foreach (var sb in squareIsBusy[x][y].Keys)
+            {
+                if (sb < from && squareIsBusy[x][y][sb].endTime < from)
+                    continue;
+                if (sb <= from && squareIsBusy[x][y][sb].endTime > from)
+                    posibleTime = squareIsBusy[x][y][sb].endTime;
+                if (sb > from)
+                {
+                    if ((sb - posibleTime) > TimeSpan.FromSeconds(0.33))
+                        return posibleTime;
+                    else 
+                        posibleTime = squareIsBusy[x][y][sb].endTime;
+                }
+            }
+            return posibleTime;
+        }
+
 
         public void UnReserveRoom(int x, int y, TimeSpan time)
         {
@@ -91,9 +112,11 @@ namespace SkladModel
         {
             foreach(var sq in squareIsBusy[x][y])
             {
-                Console.WriteLine($"{sq.Value.uid}, {sq.Key}, {sq.Value.endTime}");
+                Console.WriteLine($"{x} {y} {sq.Value.uid}, {sq.Key}, {sq.Value.endTime}");
             }
+            Console.WriteLine();
         }
+
 
     }
 

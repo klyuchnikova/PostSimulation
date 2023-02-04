@@ -22,7 +22,9 @@ namespace SkladModel
 
         public override bool CheckReservation()
         {
-            return antBot.CheckRoom(getStartTime(), getEndTime());
+            bool check = antBot.CheckRoom(getStartTime(), getStartTime() +
+                TimeSpan.FromSeconds(1.0 / antBot.sklad.skladConfig.unitSpeed));
+            return check;
         }
 
         public override TimeSpan getStartTime() => antBot.lastUpdated;
@@ -45,14 +47,7 @@ namespace SkladModel
                 throw new AntBotNotPosibleMovement();
             if (antBot.sklad.skladConfig.unitAccelerationTime != 0)
                 throw new NotImplementedException();
-            if (direction == Direction.Left)
-                antBot.xSpeed = -antBot.sklad.skladConfig.unitSpeed;
-            else if (direction == Direction.Right)
-                antBot.xSpeed = antBot.sklad.skladConfig.unitSpeed;
-            else if (direction == Direction.Up)
-                antBot.ySpeed = -antBot.sklad.skladConfig.unitSpeed;
-            else if (direction == Direction.Down)
-                antBot.ySpeed = antBot.sklad.skladConfig.unitSpeed;
+            antBot.setSpeedByDirection(direction);
             antBot.charge -= antBot.sklad.skladConfig.unitAccelerationEnergy;
             antBot.isFree = false;
             antBot.waitTime = getEndTime();

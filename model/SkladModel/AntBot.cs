@@ -45,10 +45,12 @@ namespace SkladModel
 
         public AntBot antBot;
         public AntBot antState;
+        public AntBot debugAnt;
         public TimeSpan lastTime;
         public CommandList(AntBot antBot) {
             this.antBot = antBot;
             antState = antBot.ShalowClone();
+            debugAnt = antBot.ShalowClone();
             antState.commandList = new CommandList();
             lastTime = antBot.lastUpdated;
         }
@@ -57,6 +59,7 @@ namespace SkladModel
         {
             CommandList cl = new CommandList(antBot);
             cl.antState = antState.ShalowClone();
+            cl.debugAnt = debugAnt.ShalowClone();
             commands.ForEach(c => {
                 var ev = c.Ev.Clone();
                 cl.commands.Add((c.Key, ev));
@@ -101,6 +104,7 @@ namespace SkladModel
             abstractEvent.runEvent(null, abstractEvent.getEndTime());
             lastTime = abstractEvent.getEndTime();
             abstractEvent.antBot = antBot;
+            debugAnt = antState.ShalowClone();
             return true;
         }
 
@@ -124,6 +128,7 @@ namespace SkladModel
         public bool isFree;
         public int targetXCoordinate;
         public int targetYCoordinate;
+        public bool targetDirection;
         public TimeSpan waitTime;
         public AntBotState state;
         public Sklad sklad;
@@ -172,9 +177,8 @@ namespace SkladModel
                 return ((int)(xCoordinate), (int)Math.Floor(yCoordinate) - 1 - shift);
             if (ySpeed > 0)
                 return ((int)xCoordinate, (int)Math.Ceiling(yCoordinate) + 1 + shift);
-            return (0, 0);
+            throw new CheckStateException();
         }
-
         public override (TimeSpan, AbstractEvent) getNearestEvent(List<AbstractObject> objects)
         {
             TimeSpan timeUncharged;
@@ -364,6 +368,22 @@ namespace SkladModel
                 sklad.skladConfig.unitChargeValue * sklad.skladConfig.unitChargeTime);
         }
 
+        internal bool isHaveReservation()
+        {
+            return reserved.Any(res=>res.x == xCord && res.y == yCord && res.from <= lastUpdated && res.to >= lastUpdated);
+        }
+
+        public void setSpeedByDirection(Direction direction)
+        {
+            if (direction == Direction.Left)
+                xSpeed = -sklad.skladConfig.unitSpeed;
+            else if (direction == Direction.Right)
+                xSpeed = sklad.skladConfig.unitSpeed;
+            else if (direction == Direction.Up)
+                ySpeed = -sklad.skladConfig.unitSpeed;
+            else if (direction == Direction.Down)
+                ySpeed = sklad.skladConfig.unitSpeed;
+        }
     }
 
 }

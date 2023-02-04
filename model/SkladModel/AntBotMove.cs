@@ -20,6 +20,8 @@ namespace SkladModel
         public override AntBotAbstractEvent Clone() => new AntBotMove(antBot, numCoord);
         public AntBotMove(AntBot antBot, int numCoord)
         {
+            if (numCoord < 1)
+                throw new CheckStateException();
             this.antBot = antBot;
             isCoordinate = true;
             this.numCoord = numCoord;
@@ -36,6 +38,7 @@ namespace SkladModel
                 TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(wait / antBot.sklad.skladConfig.unitSpeed);
                 if (!antBot.CheckRoom(coord.x, coord.y, startInterval, endInterval))
                 {
+                    antBot.CheckRoom(coord.x, coord.y, startInterval, endInterval);
                     return false;
                 }
             }

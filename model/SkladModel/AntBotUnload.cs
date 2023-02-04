@@ -6,11 +6,12 @@ namespace SkladModel
 {
     public class AntBotUnload : AntBotAbstractEvent
     {
-
-        public override AntBotAbstractEvent Clone() => new AntBotUnload(antBot);
-        public AntBotUnload(AntBot antBot)
+        (int x, int y, bool Direction) unloadPoint;
+        public override AntBotAbstractEvent Clone() => new AntBotUnload(antBot, unloadPoint);
+        public AntBotUnload(AntBot antBot, (int x, int y, bool Direction) unloadPoint)
         {
             this.antBot = antBot;
+            this.unloadPoint = unloadPoint;
         }
 
         public override bool CheckReservation()
@@ -37,6 +38,9 @@ namespace SkladModel
             antBot.yCoordinate = antBot.yCord;
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
+            antBot.targetXCoordinate = unloadPoint.x;
+            antBot.targetYCoordinate = unloadPoint.y;
+            antBot.targetDirection = unloadPoint.Direction;
             antBot.charge -= antBot.sklad.skladConfig.unitUnloadEnergy;
             antBot.state = AntBotState.Unloading;
             antBot.isLoaded = false;

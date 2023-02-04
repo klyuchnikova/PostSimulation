@@ -123,8 +123,6 @@ namespace SkladModel
             }
 
 
-
-
             antBot.commandList.AddCommand(new AntBootAccelerate(antBot, direction));
             antBot.commandList.AddCommand(new AntBotMove(antBot, numCoord));
             antBot.commandList.AddCommand(new AntBotStop(antBot));
@@ -201,6 +199,25 @@ namespace SkladModel
             return (T)formatter.Deserialize(ms);
         }
 
+        protected override void CheckState()
+        {
+            List<AntBot> freeAnt = GetFreeAnts();
+            foreach(AntBot ant in freeAnt)
+            {
+                if (ant.state != AntBotState.Wait)
+                {
+                    throw new CheckStateException();
+                }
+
+                if (!ant.isHaveReservation())
+                {
+                    throw new CheckStateException();
+                }
+
+
+               
+            }
+        }
     }
    
 }

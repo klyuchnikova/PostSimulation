@@ -46,6 +46,7 @@ namespace AbstractModel
 
         public bool Next()
         {
+            CheckState();
             var nearObjectEventTime = TimeSpan.MaxValue;
             AbstractEvent modelEvent = null;
             for (int i = 0; i < objects.Count; i++)
@@ -87,6 +88,7 @@ namespace AbstractModel
             return true;
         }
 
+        protected abstract void CheckState();
     }
 
 }
