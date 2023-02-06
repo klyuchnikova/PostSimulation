@@ -29,6 +29,7 @@ public class main : MonoBehaviour
     AntStateChange asc;
     public Transform panel;
     AntStateChange[] logs;
+    TimeSpan time_shift = TimeSpan.FromMinutes(0);
 
     // Start is called before the first frame update
     void Start()
@@ -39,7 +40,8 @@ public class main : MonoBehaviour
         skladWrapper.AddSklad();
         skladWrapper.AddAnts();
         new MoveSort(skladWrapper).Run(TimeSpan.FromSeconds(0));
-        //SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
+
+         //SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
         //logs = logger.logs.ToArray();
         logs = SkladWrapper.DeserializeXML<AntStateChange[]>(File.ReadAllBytes("log_unity.xml"));
 
@@ -56,7 +58,7 @@ public class main : MonoBehaviour
                 br.SetPositionAndRotation(getPosition(x, y), Quaternion.identity);
             }
         }
-        startTime = DateTime.Now;
+        startTime = DateTime.Now - time_shift;
         asc = logs[0];
     }
 
@@ -66,7 +68,6 @@ public class main : MonoBehaviour
         TimeSpan current = DateTime.Now - startTime;
         if (current.TotalSeconds > asc.lastUpdated) 
         {
-            double lastUpdated = asc.lastUpdated;
             do
             {
                 if (asc.command == "Create AntBot")
@@ -83,13 +84,26 @@ public class main : MonoBehaviour
                     antsBot[asc.uid].antStateChange = asc;
                 }
 
-                if (asc.command == "Rotate")
-                {
-                    StartCoroutine(antsBot[asc.uid].RotateMe(new Vector3(0, 0, 90), 4));
+                if (asc.lastUpdated > time_shift.TotalSeconds) {
+                    if (asc.command == "Rotate")
+                    {
+                        StartCoroutine(antsBot[asc.uid].RotateMe(new Vector3(0, 0, 90), 4));
+                    }
+                    if (asc.command == "Load")
+                    {
+                        StartCoroutine(antsBot[asc.uid].ChangeCollor(2, Color.green));
+                    }
+                    if (asc.command == "Unload")
+                    {
+                        StartCoroutine(antsBot[asc.uid].ChangeCollor(1, Color.white));
+                    }
                 }
+
+
+
                 count++;
                 asc = logs[count];
-            } while (asc.lastUpdated == lastUpdated);
+            } while (asc.lastUpdated < current.TotalSeconds);
         }
     }
 }

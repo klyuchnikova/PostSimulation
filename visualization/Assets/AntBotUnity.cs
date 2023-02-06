@@ -2,6 +2,7 @@ using SkladModel;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class AntBotUnity : MonoBehaviour
@@ -9,6 +10,7 @@ public class AntBotUnity : MonoBehaviour
 
     public AntStateChange antStateChange = new AntStateChange();
     internal DateTime startTime;
+    SpriteRenderer sr;
 
     public void SetPosition()
     {
@@ -23,7 +25,7 @@ public class AntBotUnity : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        sr = gameObject.GetComponent<SpriteRenderer>();
     }
 
     public IEnumerator RotateMe(Vector3 byAngles, float inTime)
@@ -37,7 +39,13 @@ public class AntBotUnity : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
+    public IEnumerator ChangeCollor(int time, Color color)
+    {
+        yield return new WaitForSeconds(time);
+        sr.color = color;
+    }
+
+        // Update is called once per frame
     void Update()
     {
         double shift = (DateTime.Now - startTime).TotalSeconds - antStateChange.lastUpdated;

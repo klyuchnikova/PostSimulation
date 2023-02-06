@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SkladModel
 {
-    internal class AntBotCharged : AntBotAbstractEvent
+    public class AntBotCharged : AntBotAbstractEvent
     {
         public override AntBotAbstractEvent Clone() => new AntBotCharged(antBot);
         public AntBotCharged(AntBot antBot)
