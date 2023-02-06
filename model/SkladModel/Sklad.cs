@@ -22,6 +22,8 @@ namespace SkladModel
         public List<(int x, int y, bool direction)> target = new List<(int x, int y, bool direction)>();
         public List<(int x, int y, bool direction)> charge = new List<(int x, int y, bool direction)>();
 
+        public int deliveryCount = 0;
+
         public SkladConfig skladConfig;
         [XmlIgnore]
         public SquaresIsBusy squaresIsBusy;

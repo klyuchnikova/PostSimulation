@@ -71,6 +71,11 @@ namespace SkladModel
             return objects.FindAll(x => x is AntBot).Cast<AntBot>().ToList();
         }
 
+        public Sklad GetSklad()
+        {
+            return (Sklad)objects.First(x => x is Sklad);
+        }
+
         public List<AntBot> GetFreeAnts()
         {
             return GetAllAnts().FindAll(x => x.isFree);
@@ -206,7 +211,7 @@ namespace SkladModel
             {
                 if (ant.state != AntBotState.Wait)
                 {
-                    throw new CheckStateException();
+                    //throw new CheckStateException();
                 }
 
                 if (!ant.isHaveReservation())

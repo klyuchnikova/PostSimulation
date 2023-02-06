@@ -49,6 +49,7 @@ namespace SkladModel
             antBot.waitTime = getEndTime();
             if (antBot.skladLogger != null)
             {
+                antBot.sklad.deliveryCount++;
                 antBot.skladLogger.AddLog(antBot, "Unload");
                 if (antBot.isDebug)
                 {

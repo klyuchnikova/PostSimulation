@@ -38,20 +38,37 @@ namespace ControlModel
             DateTime now = DateTime.Now;
             while (skladWrapper.Next())
             {
+
                 if (timeProgress < skladWrapper.updatedTime)
                 {
-                    Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}");
+                    Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}  {skladWrapper.GetSklad().deliveryCount}");
                     timeProgress += TimeSpan.FromMinutes(1);
                 }
 
                 if (!skladWrapper.isEventCountEmpty())
                     continue;
 
+                if (skladWrapper.GetSklad().deliveryCount >= 5000)
+                {
+                    Console.WriteLine($"Delivery time: {skladWrapper.updatedTime.TotalSeconds}");
+                    break;
+                }
+
+
                 if (skladWrapper.updatedTime > maxModelTime)
                     break;
 
                 if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
+                {
+                    Console.WriteLine("UNCHARGED");
                     break;
+                }
+                    
+
+                skladWrapper.GetFreeAnts().ForEach(x => {
+                    if (x.charge < 3600)
+                        RunToChargePoint(x);
+                });
 
                 RunToLoadPoint(skladWrapper.GetFreeUnloadedAnts());
                 try
@@ -62,7 +79,8 @@ namespace ControlModel
                 {
                     Console.WriteLine("Good try but need another exit!");
                     break;
-                }                /*
+                }                
+                /*
                 try
                 {
                     
@@ -172,6 +190,9 @@ namespace ControlModel
             }
         }
 
+
+
+
         void RunToLoadPoint(List<AntBot> freeAnts)
         {
             (AntBot bot, CommandList cList, TimeSpan minTime) minBotPath = (null, null, TimeSpan.MaxValue);
@@ -181,6 +202,10 @@ namespace ControlModel
                 freeAntCount = freeAnts.Count;
                 freeAnts.ForEach(freeAnt =>
                 {
+                    if (freeAnt.commandList.commands.Count>0)
+                    {
+                        throw new CheckStateException();
+                    }
                     freeAnt.sklad.source.ForEach(source =>
                     {
                         var gp = getPath(freeAnt, source);
@@ -200,11 +225,9 @@ namespace ControlModel
                     AntBot bot = minBotPath.bot;
                     if (minBotPath.cList.AddCommand(new AntBotLoad(bot), false))
                     {
-                        AntBot clone = minBotPath.cList.antState.ShalowClone();
-                        clone.lastUpdated = minBotPath.cList.lastTime;
                         Random rnd = new Random();
                         int next = rnd.Next(bot.sklad.target.Count);
-                        var gp = getPath(clone, bot.sklad.target[next]);
+                        var gp = getPathFromLastStep(minBotPath.cList, bot.sklad.target[next]);
                         if (gp.isPathExist)
                         {
                             if (gp.cList.AddCommand(new AntBotUnload(minBotPath.bot, bot.sklad.target[next]), false))
@@ -221,7 +244,6 @@ namespace ControlModel
                                     bot.isFree = false;
                                     bot.ReserveRoom(gp.cList.antState.xCord, gp.cList.antState.yCord,
                                         gp.cList.lastTime,
-                                        //minBotPath.cList.lastTime,
                                         gp.cList.lastTime + reserveTimeForLeave);
                                 }
                             }
@@ -232,13 +254,6 @@ namespace ControlModel
 
         }
 
-        void RunToUnloadPoint(AntBot antBot)
-        {
-            Random rnd = new Random();
-            int next = rnd.Next(antBot.sklad.target.Count);
-            if (RunToPoint(antBot, antBot.sklad.target[next]))
-                antBot.commandList.AddCommand(new AntBotUnload(antBot, antBot.sklad.target[next]));
-        }
 
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
@@ -260,6 +275,14 @@ namespace ControlModel
             }
         }
 
+
+        private (bool isPathExist, CommandList cList) getPathFromLastStep(CommandList cList, (int x, int y, bool isXDirection) point)
+        {
+            AntBot clone = cList.antState.ShalowClone();
+            clone.lastUpdated = cList.lastTime;
+            return getPath(clone, point);
+
+        }
 
         private (bool isPathExist, CommandList cList) getPath(AntBot antBot, (int x, int y, bool isXDirection) point)
         {
@@ -325,7 +348,6 @@ namespace ControlModel
 
         void NextStep(AntBot antBot)
         {
-            int deep = 6;
             var gf = graph.Pop();
             var commandList = gf.Value;
             var ant = commandList.antState;
@@ -403,7 +425,24 @@ namespace ControlModel
                             {
                                 waitSt.AddCommand(new AntBotMove(antBot, 1), false);
                                 waitSt.AddCommand(new AntBotStop(antBot, false), false);
-                                graph.Push(waitSt.lastTime, waitSt);
+                                if (waitSt.antState.isXDirection)
+                                {
+                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].xMinTime > waitSt.lastTime + TimeSpan.FromSeconds(0.01))
+                                    {
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xMinTime = waitSt.lastTime;
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xCommans = waitSt;
+                                        graph.Push(waitSt.lastTime, waitSt);
+                                    }
+                                } else
+                                {
+                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].yMinTime > waitSt.lastTime + TimeSpan.FromSeconds(0.01))
+                                    {
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yMinTime = waitSt.lastTime;
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yCommans = waitSt;
+                                        graph.Push(waitSt.lastTime, waitSt);
+                                    }
+                                }
+
                             }
 
                         }
@@ -478,7 +517,36 @@ namespace ControlModel
 
         private void RunToChargePoint(AntBot antBot)
         {
-            RunToPoint(antBot, antBot.sklad.charge[0]);
+            (AntBot bot, CommandList cList, TimeSpan minTime) minBotPath = (null, null, TimeSpan.MaxValue);
+            antBot.sklad.charge.ForEach(charge =>
+            {
+                var gp = getPath(antBot, charge);
+                if (gp.isPathExist)
+                {
+                    if (gp.cList.lastTime < minBotPath.minTime)
+                    {
+                        minBotPath.minTime = gp.cList.lastTime;
+                        minBotPath.bot = antBot;
+                        minBotPath.cList = gp.cList;
+                    }
+                }
+            });
+            if (minBotPath.cList.AddCommand(new AntBotCharge(antBot), false))
+            {
+                TimeSpan reserveTimeForLeave = TimeSpan.FromSeconds(
+                    antBot.sklad.skladConfig.unitRotateTime +
+                    1.0 / antBot.sklad.skladConfig.unitSpeed);
+                if (minBotPath.cList.antState.CheckRoom(minBotPath.cList.lastTime,
+                    minBotPath.cList.lastTime + reserveTimeForLeave))
+                {
+                    minBotPath.cList.commands.ForEach(c => c.Ev.antBot = antBot);;
+                    applyPath(antBot, minBotPath.cList);
+                    antBot.isFree = false;
+                    antBot.ReserveRoom(minBotPath.cList.antState.xCord, minBotPath.cList.antState.yCord,
+                        minBotPath.cList.lastTime,
+                        minBotPath.cList.lastTime + reserveTimeForLeave);
+                }
+            }
         }
     }
 }
