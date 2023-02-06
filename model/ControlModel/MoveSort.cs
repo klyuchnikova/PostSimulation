@@ -567,6 +567,8 @@ namespace ControlModel
                     }
                 }
             });
+            if (minBotPath.bot == null)
+                return;
             if (minBotPath.cList.AddCommand(new AntBotCharge(antBot), false))
             {
                 var escapePath = getPathToEscape(minBotPath.cList);

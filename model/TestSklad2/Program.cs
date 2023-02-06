@@ -26,7 +26,7 @@ namespace TestSklad2
             SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml", false);
             skladWrapper.AddLogger();
             skladWrapper.AddSklad();
-            skladWrapper.AddAnts(3);
+            skladWrapper.AddAnts(12);
             //new MoveSort(skladWrapper).Run();
             new MoveSort(skladWrapper).Run();
             skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");
