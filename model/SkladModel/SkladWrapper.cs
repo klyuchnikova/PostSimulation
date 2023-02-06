@@ -20,6 +20,7 @@ namespace SkladModel
     public class SkladWrapper : AbstractWrapper
     {
         public bool isDebug = false;
+        public bool isNeedCheck = true;
         SkladConfig skladConfig;
 
         public bool isEventCountEmpty()
@@ -206,6 +207,8 @@ namespace SkladModel
 
         protected override void CheckState()
         {
+            if (!isNeedCheck)
+                return;
             List<AntBot> freeAnt = GetFreeAnts();
             foreach(AntBot ant in freeAnt)
             {
