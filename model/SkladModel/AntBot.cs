@@ -47,6 +47,23 @@ namespace SkladModel
         public AntBot antState;
         public AntBot debugAnt;
         public TimeSpan lastTime;
+
+        public int RotateOnLoad = 0;
+        public int RotateOnUnload = 0;
+        public int MoveOnLoad = 0;
+        public int MoveOnUnload = 0;
+
+        [XmlIgnore]
+        public double metric
+        {
+            get
+            {
+                if (antBot.sklad.getMetric == null)
+                    return lastTime.TotalMilliseconds;
+                else
+                    return antBot.sklad.getMetric(this);
+            }
+        }
         public CommandList(AntBot antBot) {
             this.antBot = antBot;
             antState = antBot.ShalowClone();
@@ -65,6 +82,10 @@ namespace SkladModel
                 cl.commands.Add((c.Key, ev));
             });
             cl.lastTime= lastTime;
+            cl.RotateOnLoad = RotateOnLoad;
+            cl.RotateOnUnload = RotateOnUnload;
+            cl.MoveOnLoad = MoveOnLoad;
+            cl.MoveOnUnload = MoveOnUnload;
             return cl;
         }
 
@@ -98,15 +119,25 @@ namespace SkladModel
                 {
                     return false;
                 }
+                abstractEvent.CalculatePenalty();
             }
             commands.Add((lastTime, abstractEvent));
-            antState.commandList.commands.Add((lastTime, abstractEvent));        
+            antState.commandList.commands.Add((lastTime, abstractEvent));
+            antState.commandList.RotateOnLoad += abstractEvent.RotateOnLoad;
+            antState.commandList.RotateOnUnload += abstractEvent.RotateOnUnload;
+            if (!antState.isClone)
+                throw new ExecutionEngineException();
             abstractEvent.runEvent(null, abstractEvent.getEndTime());
             lastTime = abstractEvent.getEndTime();
+            RotateOnLoad += abstractEvent.RotateOnLoad;
+            RotateOnUnload += abstractEvent.RotateOnUnload;
+            MoveOnLoad += abstractEvent.MoveOnLoad;
+            MoveOnUnload += abstractEvent.MoveOnUnload;
             abstractEvent.antBot = antBot;
             debugAnt = antState.ShalowClone();
             return true;
         }
+
 
         public List<(TimeSpan Key, AntBotAbstractEvent Ev)> commands = new List<(TimeSpan Key, AntBotAbstractEvent Ev)>();
     }
@@ -137,10 +168,17 @@ namespace SkladModel
         public bool isDebug;
         [XmlIgnore]
         public CommandList commandList;
+        [XmlIgnore]
+        public bool isClone = false;
 
         [XmlIgnore]
         public List<(int x, int y, TimeSpan from, TimeSpan to)> reserved = new List<(int x, int y, TimeSpan from, TimeSpan to)>();
         internal List<AbstractObject> objects;
+
+
+
+
+
 
         private int nextShift(double speed)
         {
@@ -163,7 +201,7 @@ namespace SkladModel
                 return Math.Ceiling(yCoordinate) - yCoordinate;
             return 0;
         }
-
+        
 
 
 
@@ -325,6 +363,7 @@ namespace SkladModel
         public AntBot ShalowClone()
         {
             AntBot _antBot = new AntBot();
+            _antBot.isClone = true;
             _antBot.charge = this.charge;
             _antBot.lastUpdated = this.lastUpdated;
             _antBot.xCoordinate = this.xCoordinate;

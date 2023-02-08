@@ -27,12 +27,13 @@ namespace SkladModel
             this.numCoord = numCoord;
         }
 
+
+
         public override bool CheckReservation()
         {
             for (int shift = 0; shift < numCoord; shift++)
             {
                 var coord = antBot.getShift(shift);
-
                 TimeSpan startInterval = antBot.lastUpdated + TimeSpan.FromSeconds(shift / antBot.sklad.skladConfig.unitSpeed);
                 double wait = shift < numCoord - 1 ? 2.0 : 1.0;
                 TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(wait / antBot.sklad.skladConfig.unitSpeed);
@@ -47,8 +48,23 @@ namespace SkladModel
 
         public override TimeSpan getStartTime() => antBot.lastUpdated;
         public override TimeSpan getEndTime() => getStartTime() + TimeSpan.FromSeconds(numCoord / antBot.sklad.skladConfig.unitSpeed);
+
+        public override void CalculatePenalty()
+        {
+            MoveOnLoad = 0;
+            MoveOnUnload = 0;
+            for (int shift = 0; shift < numCoord; shift++)
+            {
+                var coord = antBot.getShift(shift);
+                if (antBot.sklad.skladLayout[coord.y][coord.x] == 2 || antBot.sklad.skladLayout[coord.y][coord.x] == 5)
+                    MoveOnLoad += 1;
+                if (antBot.sklad.skladLayout[coord.y][coord.x] == 3 || antBot.sklad.skladLayout[coord.y][coord.x] == 6)
+                    MoveOnUnload += 1;
+            }
+        }
         public override void ReserveRoom()
         {
+
             for (int shift = 0; shift < numCoord; shift++)
             {
                 var coord = antBot.getShift(shift);

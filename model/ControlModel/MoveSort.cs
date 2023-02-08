@@ -16,6 +16,8 @@ namespace ControlModel
     {
         public TimeSpan xMinTime = TimeSpan.MaxValue;
         public TimeSpan yMinTime = TimeSpan.MaxValue;
+        public double xMinMetric = double.MaxValue;
+        public double yMinMetric = double.MaxValue;
         public CommandList xCommans;
         public CommandList yCommans;
     }
@@ -125,7 +127,8 @@ namespace ControlModel
                         continue;
                 }
                 var gp = getPath(ant, ant.sklad.source[0]);
-                TimeSpan min= TimeSpan.MaxValue;
+                double min = double.MaxValue;
+                TimeSpan minTime = TimeSpan.MaxValue;
                 TimeSpan posibleReserve = TimeSpan.MaxValue;
                 CommandList minPath = new CommandList(ant);
                 CommandList minPosiblePath = new CommandList(ant);
@@ -136,11 +139,12 @@ namespace ControlModel
                 {
                     foreach(var yKey in state[xKey].Keys)
                     {
-                        if (state[xKey][yKey].xMinTime < min)
+                        if (state[xKey][yKey].xMinMetric < min)
                         {
                             if (ant.CheckRoom(xKey, yKey, state[xKey][yKey].xMinTime, TimeSpan.MaxValue))
                             {
-                                min = state[xKey][yKey].xMinTime;
+                                min = state[xKey][yKey].xMinMetric;
+                                minTime = state[xKey][yKey].xMinTime;
                                 minPath = state[xKey][yKey].xCommans;
                             } else
                             {
@@ -152,11 +156,12 @@ namespace ControlModel
                                 }
                             }
                         }
-                        if (state[xKey][yKey].yMinTime < min)
+                        if (state[xKey][yKey].yMinMetric < min)
                         {
                             if (ant.CheckRoom(xKey, yKey, state[xKey][yKey].yMinTime, TimeSpan.MaxValue))
                             {
-                                min = state[xKey][yKey].yMinTime;
+                                min = state[xKey][yKey].yMinMetric;
+                                minTime = state[xKey][yKey].yMinTime;
                                 minPath = state[xKey][yKey].yCommans;                              
                             }
                             else
@@ -171,10 +176,10 @@ namespace ControlModel
                         }
                     }
                 }
-                if (min!=TimeSpan.MaxValue)
+                if (minTime!=TimeSpan.MaxValue)
                 {
                     applyPath(ant, minPath);
-                    ant.commandList.antState.ReserveRoom(min, TimeSpan.MaxValue);
+                    ant.commandList.antState.ReserveRoom(minTime, TimeSpan.MaxValue);
                 } else
                 {
                     if (maxReserve >= ant.lastUpdated + TimeSpan.FromSeconds(1.0/3.0))
@@ -255,7 +260,7 @@ namespace ControlModel
 
         Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
-        public FibonacciHeap<TimeSpan, CommandList> graph;
+        public FibonacciHeap<double, CommandList> graph;
         private bool RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
         {
             (bool isPathExist, CommandList cList) = getPath(antBot, point);
@@ -308,24 +313,26 @@ namespace ControlModel
         private void initGraph(AntBot antBot)
         {
             AntBot ant = antBot.ShalowClone();
-            graph = new FibonacciHeap<TimeSpan, CommandList>();
+            graph = new FibonacciHeap<double, CommandList>();
             ant.commandList = new CommandList(ant);
             if (ant.isXDirection)
             {
-                if (ant.lastUpdated < state[ant.xCord][ant.yCord].xMinTime)
+                if (ant.commandList.metric < state[ant.xCord][ant.yCord].xMinMetric)
                 {
                     state[ant.xCord][ant.yCord].xMinTime = ant.lastUpdated;
+                    state[ant.xCord][ant.yCord].xMinMetric = ant.commandList.metric;
                     state[ant.xCord][ant.yCord].xCommans = ant.commandList.Clone();
-                    graph.Push(state[ant.xCord][ant.yCord].xMinTime, state[ant.xCord][ant.yCord].xCommans);
+                    graph.Push(state[ant.xCord][ant.yCord].xMinMetric, state[ant.xCord][ant.yCord].xCommans);
                 }
             }
             else
             {
-                if (ant.lastUpdated < state[ant.xCord][ant.yCord].yMinTime)
+                if (ant.commandList.metric < state[ant.xCord][ant.yCord].yMinMetric)
                 {
                     state[ant.xCord][ant.yCord].yMinTime = ant.lastUpdated;
+                    state[ant.xCord][ant.yCord].yMinMetric = ant.commandList.metric;
                     state[ant.xCord][ant.yCord].yCommans = ant.commandList.Clone();
-                    graph.Push(state[ant.xCord][ant.yCord].xMinTime, state[ant.xCord][ant.yCord].yCommans);
+                    graph.Push(state[ant.xCord][ant.yCord].xMinMetric, state[ant.xCord][ant.yCord].yCommans);
                 }
             }
         }
@@ -345,7 +352,7 @@ namespace ControlModel
                     return (false, null);
 
                 var gr = graph.Peek();
-                if (gr.Value.antState.CheckRoom(gr.Key, TimeSpan.MaxValue))
+                if (gr.Value.antState.CheckRoom(gr.Value.lastTime, TimeSpan.MaxValue))
                     if (skladLayout[gr.Value.antState.yCord][gr.Value.antState.xCord] == 1)
                         return (true, gr.Value);
             }
@@ -388,32 +395,34 @@ namespace ControlModel
             var commandList = gf.Value;
             var ant = commandList.antState;
             var st = state[ant.xCord][ant.yCord];
-            if (st.yMinTime > commandList.lastTime)
+            if (st.yMinMetric > commandList.metric)
             {
                 var st1 = commandList.Clone();
                 if (st1.AddCommand(new AntBotRotate(antBot), false))
                 {
                     st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                    if (st1.lastTime < st.yMinTime)
+                    if (st1.metric < st.yMinMetric)
                     {
                         state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
+                        state[st1.antState.xCord][st1.antState.yCord].yMinMetric = st1.metric;
                         state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
-                        graph.Push(st1.lastTime, st1);
+                        graph.Push(st1.metric, st1);
                     }
                 }
 
             }
-            if (st.xMinTime > commandList.lastTime)
+            if (st.xMinMetric > commandList.metric)
             {
                 var st1 = commandList.Clone();
                 if (st1.AddCommand(new AntBotRotate(antBot), false))
                 {
                     st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                    if (st1.lastTime < st.xMinTime)
+                    if (st1.metric < st.xMinMetric)
                     {
                         state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
+                        state[st1.antState.xCord][st1.antState.yCord].xMinMetric = st1.metric;
                         state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
-                        graph.Push(st1.lastTime, st1);
+                        graph.Push(st1.metric, st1);
                     }
                 }
 
@@ -438,13 +447,11 @@ namespace ControlModel
                 waitSt.antState.setSpeedByDirection(dir);
                 waitSt.antState.xCoordinate += waitSt.antState.xSpeed * (dist + 1) / antBot.sklad.skladConfig.unitSpeed;
                 waitSt.antState.yCoordinate += waitSt.antState.ySpeed * (dist + 1) / antBot.sklad.skladConfig.unitSpeed;
-                (int x, int y) save = (waitSt.antState.xCord, waitSt.antState.yCord);
                 var near = antBot.sklad.squaresIsBusy.GetNearestReserve(waitSt.antState.xCord,
                     waitSt.antState.yCord, waitSt.lastTime + TimeSpan.FromSeconds((double)dist/ antBot.sklad.skladConfig.unitSpeed));
                 
                 if (near != TimeSpan.MaxValue)
                 {
-                    //antBot.sklad.squaresIsBusy.PrintRoom(waitSt.antState.xCord, waitSt.antState.yCord);
                     if (near > waitSt.lastTime)
                     {
                         waitSt = commandList.Clone();
@@ -463,19 +470,21 @@ namespace ControlModel
                                 waitSt.AddCommand(new AntBotStop(antBot, false), false);
                                 if (waitSt.antState.isXDirection)
                                 {
-                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].xMinTime > waitSt.lastTime + TimeSpan.FromSeconds(0.01))
+                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].xMinMetric > waitSt.metric + 0.1)
                                     {
                                         state[waitSt.antState.xCord][waitSt.antState.yCord].xMinTime = waitSt.lastTime;
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xMinMetric = waitSt.metric;
                                         state[waitSt.antState.xCord][waitSt.antState.yCord].xCommans = waitSt;
-                                        graph.Push(waitSt.lastTime, waitSt);
+                                        graph.Push(waitSt.metric, waitSt);
                                     }
                                 } else
                                 {
-                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].yMinTime > waitSt.lastTime + TimeSpan.FromSeconds(0.01))
+                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].yMinMetric > waitSt.metric + 0.1)
                                     {
                                         state[waitSt.antState.xCord][waitSt.antState.yCord].yMinTime = waitSt.lastTime;
+                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yMinMetric = waitSt.metric;
                                         state[waitSt.antState.xCord][waitSt.antState.yCord].yCommans = waitSt;
-                                        graph.Push(waitSt.lastTime, waitSt);
+                                        graph.Push(waitSt.metric, waitSt);
                                     }
                                 }
 
@@ -494,11 +503,12 @@ namespace ControlModel
                         st1.AddCommand(new AntBotMove(antBot, dst), false);
                         st1.AddCommand(new AntBotStop(antBot, false), false);
                         
-                        if (state[st1.antState.xCord][st1.antState.yCord].xMinTime > st1.lastTime + TimeSpan.FromSeconds(0.01))
+                        if (state[st1.antState.xCord][st1.antState.yCord].xMinMetric > st1.metric + 0.1)
                         {
                             state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
+                            state[st1.antState.xCord][st1.antState.yCord].xMinMetric = st1.metric;
                             state[st1.antState.xCord][st1.antState.yCord].xCommans = st1;
-                            graph.Push(st1.lastTime, st1);
+                            graph.Push(st1.metric, st1);
                         }
                     }
                     else
@@ -507,11 +517,12 @@ namespace ControlModel
                         st1.AddCommand(new AntBootAccelerate(antBot, dir), false);
                         st1.AddCommand(new AntBotMove(antBot, dst), false);
                         st1.AddCommand(new AntBotStop(antBot, false), false);
-                        if (state[st1.antState.xCord][st1.antState.yCord].yMinTime > st1.lastTime + TimeSpan.FromSeconds(0.0001))
+                        if (state[st1.antState.xCord][st1.antState.yCord].yMinMetric > st1.metric + 0.1)
                         { 
                             state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
+                            state[st1.antState.xCord][st1.antState.yCord].yMinMetric = st1.metric;
                             state[st1.antState.xCord][st1.antState.yCord].yCommans = st1;
-                            graph.Push(st1.lastTime, st1);
+                            graph.Push(st1.metric, st1);
                         }
                     }
                 }

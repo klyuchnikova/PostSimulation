@@ -1,18 +1,8 @@
 ﻿using AbstractModel;
-using ExtendedXmlSerializer.Core.Sources;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Reflection;
-using System.Runtime.Remoting.Messaging;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace SkladModel
@@ -22,6 +12,7 @@ namespace SkladModel
         public bool isDebug = false;
         public bool isNeedCheck = true;
         SkladConfig skladConfig;
+        Func<CommandList, double> metricFunc;
 
         public bool isEventCountEmpty()
         {
@@ -42,9 +33,9 @@ namespace SkladModel
             AddEvent(TimeSpan.Zero, new SkladLoggerCreate());
         }
 
-        public void AddSklad()
+        public void AddSklad(Func<CommandList, double> metricFunc = null)
         {
-            AddEvent(TimeSpan.Zero, new SkladCreate(skladConfig));
+            AddEvent(TimeSpan.Zero, new SkladCreate(skladConfig, metricFunc));
         }
 
         public void AddAnts(int numRobots)

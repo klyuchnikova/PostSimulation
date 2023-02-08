@@ -63,6 +63,8 @@ namespace SkladModel
 
             if (antBot.skladLogger != null)
             {
+                if (antBot.isClone)
+                    throw new ExecutionEngineException();
                 antBot.skladLogger.AddLog(antBot, $"accelerating");
                 if (antBot.isDebug)
                 {
@@ -71,7 +73,6 @@ namespace SkladModel
             }
 
         }
-
     }
 
 }

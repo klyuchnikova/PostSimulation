@@ -16,24 +16,27 @@ namespace TestSklad2
 {
     class Program
     {
-
-
-
+        private static double timeEnergyMetric(CommandList arg)
+        {
+            return arg.lastTime.TotalSeconds + 
+                (1 - arg.antState.charge/arg.antBot.sklad.skladConfig.unitChargeValue) * 
+                arg.antBot.sklad.skladConfig.unitChargeTime + arg.RotateOnLoad * 4 + arg.MoveOnLoad * 5 + arg.MoveOnUnload * 0.33;
+        }
 
 
         static void Main(string[] args)
         {            
             SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\wms-config.xml", false);
             skladWrapper.AddLogger();
-            skladWrapper.AddSklad();
-            skladWrapper.AddAnts(12);
-            //new MoveSort(skladWrapper).Run();
+            skladWrapper.AddSklad(timeEnergyMetric);
+            skladWrapper.AddAnts(8);
             new MoveSort(skladWrapper).Run();
+            //new MoveSort(skladWrapper).Run();
             skladWrapper.SaveLog(@"..\..\..\..\..\log.xml");
             SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
             File.WriteAllBytes(@"..\..\..\..\..\log_unity.xml", SkladWrapper.SerializeXML(logger.logs.ToArray()));
-
-
         }
+
+
     }
 }

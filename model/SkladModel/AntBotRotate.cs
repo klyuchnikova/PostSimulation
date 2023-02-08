@@ -31,6 +31,17 @@ namespace SkladModel
             antBot.ReserveRoom(x, y, getStartTime(), getEndTime());
         }
 
+
+        public override void CalculatePenalty()
+        {
+            int x = antBot.xCord;
+            int y = antBot.yCord;
+            if (antBot.sklad.skladLayout[y][x] == 2 || antBot.sklad.skladLayout[y][x] == 5)
+                RotateOnLoad = 1;
+            if (antBot.sklad.skladLayout[y][x] == 3 || antBot.sklad.skladLayout[y][x] == 6)
+                RotateOnUnload = 1;
+        }
+
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
             antBot.xCoordinate = antBot.xCord;
