@@ -75,7 +75,8 @@ namespace SkladModel
 
         public List<AntBot> GetFreeUnloadedAnts()
         {
-            return GetAllAnts().FindAll(x => x.isFree && !x.isLoaded);
+            return GetAllAnts().FindAll(x => x.
+            isFree && !x.isLoaded);
         }
 
         public List<AntBot> GetFreeLoadedAnts()

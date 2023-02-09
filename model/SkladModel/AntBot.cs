@@ -89,6 +89,20 @@ namespace SkladModel
             return cl;
         }
 
+        public void ClearCommands(bool isNeedReserve = true)
+        {
+            if (antState.commandList == null)
+            {
+                return;
+            }
+            if (antState.isClone || antState.isDebug)
+            {
+                // those are special, i think it would be logical to delete them completely
+            }
+            for (commands : antState.commandList)
+
+        }
+
         public bool AddCommand(AntBotAbstractEvent abstractEvent, bool isNeedReserve = true)
         {
 
@@ -173,12 +187,12 @@ namespace SkladModel
 
         [XmlIgnore]
         public List<(int x, int y, TimeSpan from, TimeSpan to)> reserved = new List<(int x, int y, TimeSpan from, TimeSpan to)>();
+
+        [XmlIgnore]
         internal List<AbstractObject> objects;
 
-
-
-
-
+        [XmlIgnore]
+        public CommandList escapePath;
 
         private int nextShift(double speed)
         {

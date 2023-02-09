@@ -23,8 +23,11 @@ namespace ControlModel
     }
     public class MoveSort
     {
+
         SkladWrapper skladWrapper;
         TimeSpan maxTime = TimeSpan.MaxValue;
+        int recalculate_period = 9;
+        int horizon = 10;
 
         public MoveSort(SkladWrapper skladWrapper) { 
             this.skladWrapper = skladWrapper;
@@ -34,86 +37,61 @@ namespace ControlModel
         {
             Run(TimeSpan.MaxValue);
         }
+
         public void Run(TimeSpan maxModelTime)
         {
             TimeSpan timeProgress = TimeSpan.Zero;
             DateTime now = DateTime.Now;
+            int numberFreeAnt = 0;
+            double optimalChargeValue = skladWrapper.GetSklad().skladConfig.unitChargeValue * 0.8;
+            long number_of_recalculations = 0;
+
             while (skladWrapper.Next())
             {
-
                 if (timeProgress < skladWrapper.updatedTime)
                 {
                     Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}  {skladWrapper.GetSklad().deliveryCount}");
                     timeProgress += TimeSpan.FromMinutes(1);
                 }
-
-                if (!skladWrapper.isEventCountEmpty())
-                    continue;
-
-                if (skladWrapper.GetSklad().deliveryCount >= 5000)
+                if (skladWrapper.updatedTime > maxModelTime)
+                {
+                    break;
+                }
+                else if (skladWrapper.GetSklad().deliveryCount >= 5000)
                 {
                     Console.WriteLine($"Delivery time: {skladWrapper.updatedTime.TotalSeconds}");
                     break;
                 }
-
-                if (skladWrapper.updatedTime > maxModelTime)
-                    break;
-
-                if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
+                else if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
                 {
                     Console.WriteLine("UNCHARGED");
                     break;
                 }
-                    
+                else if (!skladWrapper.isEventCountEmpty() || numberFreeAnt == skladWrapper.GetFreeAnts().Count)
+                {
+                    continue;
+                }
 
                 skladWrapper.GetFreeAnts().ForEach(x => {
-                    if (x.charge < 3600)
+                    if (x.charge < optimalChargeValue)
+                    {
                         RunToChargePoint(x);
+                    } else
+                    {
+                        RunToLoadPoint(x);
+                    }
                 });
 
-                RunToLoadPoint(skladWrapper.GetFreeUnloadedAnts());
                 try
                 {
                     TryRunToFreePoint(skladWrapper.GetFreeAnts());
                 }
-                catch (ImposibleFoundWay ex)
+                catch (ImposibleFoundWay e)
                 {
-                    Console.WriteLine("Good try but need another exit!");
+                    Console.WriteLine("Couldn't build a path of retrieve");
                     break;
-                }                
-                /*
-                try
-                {
-                    
-                } catch (ImposibleFoundWay ex)
-                {
-                    Console.WriteLine("We going to the hell!");
-                    List<AntBot> allAnt = skladWrapper.GetAllAnts();
-                    foreach (AntBot ant in allAnt)
-                    {
-                        if (ant.state == AntBotState.Wait)
-                        {
-                            ant.CleanReservation();
-                            ant.commandList = new CommandList(ant);
-                            ant.commandList.AddCommand(new AntBotWait(ant.lastUpdated, TimeSpan.MaxValue));
-                        }
-                        else if (ant.state == AntBotState.Rotate)
-                        {
-                            ant.CleanReservation();
-                            ant.commandList = new CommandList(ant);
-                            ant.commandList.AddCommand(new AntBotWait(ant.lastUpdated, ant.waitTime));
-                            ant.commandList.AddCommand(new AntBotWait(ant.lastUpdated, TimeSpan.MaxValue));
-                        }
-                        else if (ant.state == AntBotState.Move)
-                        {
-                            ant.CleanReservation();
-                            ant.commandList = new CommandList(ant);
-                            ant.commandList.AddCommand(new AntBotWait(ant.lastUpdated, ant.waitTime));
-                            ant.commandList.AddCommand(new AntBotWait(ant.lastUpdated, TimeSpan.MaxValue));
-                        }
-                    }
                 }
-                */
+                numberFreeAnt = skladWrapper.GetFreeAnts().Count;
             }
         }
 
@@ -123,7 +101,7 @@ namespace ControlModel
             {
                 if (ant.reserved.Count > 0)
                 {
-                    if (ant.reserved.Any(r=>r.x == ant.xCord && r.y == ant.yCord && r.from<=ant.lastUpdated && r.to == TimeSpan.MaxValue))
+                    if (ant.reserved.Any(r=>r.x == ant.xCord && r.y == ant.yCord && (r.from - ant.lastUpdated).TotalSeconds < 0.0001 && r.to == TimeSpan.MaxValue))
                         continue;
                 }
                 var gp = getPath(ant, ant.sklad.source[0]);
@@ -180,6 +158,7 @@ namespace ControlModel
                 {
                     applyPath(ant, minPath);
                     ant.commandList.antState.ReserveRoom(minTime, TimeSpan.MaxValue);
+                    ant.isFree = false;
                 } else
                 {
                     if (maxReserve >= ant.lastUpdated + TimeSpan.FromSeconds(1.0/3.0))
@@ -196,65 +175,62 @@ namespace ControlModel
 
 
 
-        void RunToLoadPoint(List<AntBot> freeAnts)
+        void RunToLoadPoint(AntBot freeAnt)
         {
             (AntBot bot, CommandList cList, TimeSpan minTime) minBotPath = (null, null, TimeSpan.MaxValue);
-            int freeAntCount = freeAnts.Count;
-            do
+                
+            if (freeAnt.commandList.commands.Count>0)
             {
-                freeAntCount = freeAnts.Count;
-                freeAnts.ForEach(freeAnt =>
+                freeAnt.CleanReservation();
+                freeAnt.ClearCommands(); //--!
+            }
+
+             
+            freeAnt.sklad.source.ForEach(source =>
+            {
+                var gp = getPath(freeAnt, source);
+                if (gp.isPathExist)
                 {
-                    if (freeAnt.commandList.commands.Count>0)
+                    if (gp.cList.lastTime < minBotPath.minTime)
                     {
-                        throw new CheckStateException();
+                        minBotPath.minTime = gp.cList.lastTime;
+                        minBotPath.bot = freeAnt;
+                        minBotPath.cList = gp.cList;
                     }
-                    freeAnt.sklad.source.ForEach(source =>
-                    {
-                        var gp = getPath(freeAnt, source);
-                        if (gp.isPathExist)
-                        {
-                            if (gp.cList.lastTime < minBotPath.minTime)
-                            {
-                                minBotPath.minTime = gp.cList.lastTime;
-                                minBotPath.bot = freeAnt;
-                                minBotPath.cList = gp.cList;
-                            }
-                        }
-                    });
-                });
-                if (minBotPath.minTime < TimeSpan.MaxValue)
+                }
+            });
+
+            if (minBotPath.minTime < TimeSpan.MaxValue)
+            {
+                AntBot bot = minBotPath.bot;
+                if (minBotPath.cList.AddCommand(new AntBotLoad(bot), false))
                 {
-                    AntBot bot = minBotPath.bot;
-                    if (minBotPath.cList.AddCommand(new AntBotLoad(bot), false))
+                    Random rnd = new Random();
+                    int next = rnd.Next(bot.sklad.target.Count);
+                    var gp = getPathFromLastStep(minBotPath.cList, bot.sklad.target[next]);
+                    if (gp.isPathExist)
                     {
-                        Random rnd = new Random();
-                        int next = rnd.Next(bot.sklad.target.Count);
-                        var gp = getPathFromLastStep(minBotPath.cList, bot.sklad.target[next]);
-                        if (gp.isPathExist)
+                        if (gp.cList.AddCommand(new AntBotUnload(minBotPath.bot, bot.sklad.target[next]), false))
                         {
-                            if (gp.cList.AddCommand(new AntBotUnload(minBotPath.bot, bot.sklad.target[next]), false))
-                            {
-                                gp.cList.AddCommand(new AntBotWait(minBotPath.bot, TimeSpan.Zero));
-                                var escapePath = getPathToEscape(gp.cList);
-                                if (escapePath.isPathExist)
-                                {                                
-                                    gp.cList.commands.ForEach(c => c.Ev.antBot = bot);
-                                    minBotPath.cList.commands.AddRange(gp.cList.commands);
-                                    applyPath(bot, minBotPath.cList);
-                                    AntBot ant = gp.cList.antState.ShalowClone();
-                                    ant.commandList = new CommandList(ant);
-                                    ant.lastUpdated = gp.cList.lastTime;
-                                    escapePath.cList.AddCommand(new AntBotStop(ant));
-                                    reservePath(ant, escapePath.cList);
-                                    bot.isFree = false;          
-                                }
+                            gp.cList.AddCommand(new AntBotWait(minBotPath.bot, TimeSpan.Zero));
+                            var escapePath = getPathToEscape(gp.cList);
+                            if (escapePath.isPathExist)
+                            {                                
+                                gp.cList.commands.ForEach(c => c.Ev.antBot = bot);
+                                minBotPath.cList.commands.AddRange(gp.cList.commands);
+                                applyPath(bot, minBotPath.cList);
+                                AntBot ant = gp.cList.antState.ShalowClone();
+                                ant.commandList = new CommandList(ant);
+                                ant.lastUpdated = gp.cList.lastTime;                                    
+                                reservePath(ant, escapePath.cList);
+                                escapePath.cList.AddCommand(new AntBotStop(ant));
+                                bot.escapePath = escapePath.cList;
+                                bot.isFree = false;          
                             }
                         }
                     }
                 }
-            } while (freeAntCount != freeAnts.Count);
-
+            }
         }
 
 
@@ -435,7 +411,6 @@ namespace ControlModel
                 if (!ant.isXDirection && (dir == Direction.Left || dir == Direction.Right))
                     continue;
                 int dist = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
-
 
                 var waitSt = commandList.Clone();
                 if (dist == 0) 
