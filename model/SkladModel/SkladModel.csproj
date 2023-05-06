@@ -77,7 +77,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AntBootAccelerate.cs" />
+    <Compile Include="AntBotAccelerate.cs" />
     <Compile Include="AntBot.cs" />
     <Compile Include="AntBotAbstractEvent.cs" />
     <Compile Include="AntBotCharge.cs" />

@@ -121,7 +121,7 @@ namespace SkladModel
             }
 
 
-            antBot.commandList.AddCommand(new AntBootAccelerate(antBot, direction));
+            antBot.commandList.AddCommand(new AntBotAccelerate(antBot, direction));
             antBot.commandList.AddCommand(new AntBotMove(antBot, numCoord));
             antBot.commandList.AddCommand(new AntBotStop(antBot));
 
@@ -144,7 +144,7 @@ namespace SkladModel
                 _antBot.Update(ev.getEndTime());
             }
 
-            ev = new AntBootAccelerate(_antBot, direction);
+            ev = new AntBotAccelerate(_antBot, direction);
             ev.runEvent(objects, _antBot.lastUpdated);
             _antBot.Update(ev.getEndTime());
 
@@ -209,7 +209,7 @@ namespace SkladModel
                     //throw new CheckStateException();
                 }
 
-                if (!ant.isHaveReservation())
+                if (!ant.doesHaveReservation())
                 {
                     throw new CheckStateException();
                 }

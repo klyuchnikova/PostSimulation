@@ -91,6 +91,7 @@ namespace SkladModel
 
         public void ClearCommands(bool isNeedReserve = true)
         {
+            // --!
             if (antState.commandList == null)
             {
                 return;
@@ -99,7 +100,11 @@ namespace SkladModel
             {
                 // those are special, i think it would be logical to delete them completely
             }
-            for (commands : antState.commandList)
+
+            foreach ((TimeSpan key, AntBotAbstractEvent ev) in antState.commandList.commands)
+            { 
+
+            }
 
         }
 
@@ -216,8 +221,10 @@ namespace SkladModel
             return 0;
         }
         
-
-
+        public double EstimateTimeToMoveFunc(int x2, int y2, bool direction2)
+        {
+            return (Math.Abs(x2 - xCord) + Math.Abs(y2 - yCord)) * (1 / sklad.skladConfig.unitSpeed) + (Convert.ToInt32(isXDirection != direction2) + Convert.ToInt32((x2!=xCord)&&(y2!=yCord))) * sklad.skladConfig.unitRotateTime;
+        }
 
         public (int x, int y) getShift(int shift)
         {
@@ -301,6 +308,12 @@ namespace SkladModel
                     charge -= sklad.skladConfig.unitMoveEnergy * second;
                     break;
             }
+            if (charge <= 0)
+            {
+                Console.WriteLine("Robot on " + xCoordinate.ToString() + ", " + yCoordinate.ToString() + " got uncharged");
+                throw new InvalidOperationException("System entered a forbidden state");
+            }
+            // --! let's exit with exception here
             lastUpdated = timeSpan;
         }
 
@@ -421,7 +434,7 @@ namespace SkladModel
                 sklad.skladConfig.unitChargeValue * sklad.skladConfig.unitChargeTime);
         }
 
-        internal bool isHaveReservation()
+        internal bool doesHaveReservation()
         {
             return reserved.Any(res=>res.x == xCord && res.y == yCord && res.from <= lastUpdated && res.to >= lastUpdated);
         }

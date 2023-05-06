@@ -14,40 +14,60 @@ import numpy as np
 import colorsys
 from tqdm import tqdm
 import re
+from copy import deepcopy
 
-class RobotState:
-    def __init__(self, x, y, is_x_dir, time_p):
+class RobotPosition:
+    def __init__(self, x, y, is_x_dir, is_loaded):
         self.x = x
         self.y = y
         self.direct = is_x_dir
-        self.time_p = self.time_p
+        self.is_loaded = is_loaded
+    def __copy__(self):
+        return RobotPosition(self.x, self.y, self.direct, self.is_loaded)
+
+class RobotState:
+    def __init__(self, x, y, uid, is_x_dir, time_p, is_loaded):
+        self.x = x
+        self.y = y
+        self.uid = uid
+        self.direct = is_x_dir
+        self.time_p = time_p
+        self.is_loaded = is_loaded
     
-    def copy():
-        return RobotState(self.x, self.y, self.is_x_dir, self.time_p)
+    def __copy__(self):
+        return RobotState(self.x, self.y, self.uid, self.direct, self.time_p, self.is_loaded)
+    
+    def to_robot_position(self):
+        return RobotPosition(self.x, self.y, self.direct, self.is_loaded)
 
 class LogIterator:
     def __init__(self, logs):
         self.it = logs.iter("AntStateChange")
-    def next():
+        self.is_end = False
+        
+    def next(self):
         if self.is_end:
             return
         new_command = None
         while True:
             try:
-                new_command = self.it.next()
+                new_command = next(self.it)
             except:
                 self.is_end = True
-                break
+                return
             if new_command.find("command").text != "EndTask":
                 continue
+            break
         return RobotState(round(float(new_command.find("xCoordinate").text) + 0.1), 
                           round(float(new_command.find("yCoordinate").text) + 0.1), 
+                          new_command.find("uid").text,
                           new_command.find("isXDirection").text == "true", 
-                          strp_pt_time(new_command.find("lastUpdated").text))
+                          strp_pt_time(new_command.find("lastUpdated").text),
+                          new_command.find("isLoaded").text == "true")
 
 def strp_pt_time(pt):
     format_ = "PT((?P<hours>\d+)H)?((?P<minutes>\d+)M)?(?P<seconds>\d+.\d+)"
-    match = re.match(format_, time_ex)
+    match = re.match(format_, pt)
     hours = int(match.group("hours")) if match.group("hours") else 0
     minutes = int(match.group("minutes")) if match.group("minutes") else 0
     seconds = float(match.group("seconds")) if match.group("seconds") else 0
@@ -152,8 +172,6 @@ class MapBlock:
         return surface
         
     def pre_setup(self):
-        print(self.map_classes)
-        
         self.map_height, self.map_width = len(self.map_classes), len(self.map_classes[0])
         self.map_pix_height, self.map_pix_width = self.map_height*(self.tile_pix_height + self.border_width) + self.border_width, self.map_width*(self.tile_pix_width + self.border_width) + self.border_width
         self.map_pix_size = (self.map_pix_width, self.map_pix_height)
@@ -206,6 +224,7 @@ class Animator:
         self.load_start_configs(self.obs_config_path)
         
         self.robots_data = []
+        self.uid_to_id = dict()
         
     def load_start_configs(self, obs_config_path):
         doc = ET.iterparse(obs_config_path)
@@ -251,21 +270,30 @@ class Animator:
                                                     for col_id in range(len(self.map_controller.map_classes[row_id]))] 
                                                    for row_id in range(len(self.map_controller.map_classes))]
         self.number_frames = int(logs.find("Capacity").text)
+        self.cur_timedelta = timedelta(0)
         self.map_controller.pre_setup()
         self.load_robot_config(configs.find("antBotLayout").text, logs)
         self.pre_setup()
+        
         
     def load_robot_config(self, robot_config, logs):
         # load robot config!
         # initial positions
         self.number_frames = 6
         self.frame_duration = 1/6
-        self.robots = [[] for i in range(number_frames)]
-        robot_config = robot_config.split('\\')[-1]
-        with open(robot_config, "r") as rob_init:
-            for i in range(self.number_frames):
-                self.robots_data[i] = [list(map(int, line.split(', '))) for line in rob_init.readlines()]
-            
+        self.robots = [dict() for i in range(self.number_frames)] # tp.List[tp.Dict[str, RobotPosition]]
+        self.cur_frame_id = 0
+                
+        for command in logs.iter("AntStateChange"):
+            if command.find("command").text == "Create AntBot":
+                self.robots[0][command.find("uid").text] = RobotPosition(
+                    round(float(command.find("xCoordinate").text) + 0.1), 
+                    round(float(command.find("yCoordinate").text) + 0.1), 
+                    command.find("isXDirection").text == "true", 
+                    command.find("isLoaded").text == "true")
+                
+        for i in range(1, self.number_frames):
+            self.robots[i] = deepcopy(self.robots[0])
         # first maybe make a class with simular abilities
         # what we need is to iterate on time 
         # when we say next (timedelta)
@@ -273,13 +301,22 @@ class Animator:
         
         self.log_iterator = LogIterator(logs)
         self.last_state = self.log_iterator.next()
+        assert(self.last_state is not None)
+        self.update_frame()
         
     def next_frames(self, end_time):
         new_frames = []
         while self.last_state.time_p < end_time:
-            new_frames.append(self.last_state.copy())
+            new_frames.append(deepcopy(self.last_state))
             self.last_state = self.log_iterator.next()
         return new_frames
+    
+    def update_frame(self):
+        end_time = self.cur_timedelta + timedelta(seconds = self.frame_duration*self.number_frames)
+        for rob_state in self.next_frames(end_time):
+            frame_id = int((rob_state.time_p - self.cur_timedelta).total_seconds()//self.frame_duration)
+            print(frame_id, rob_state.uid)
+            self.robots[(frame_id + self.cur_frame_id)%self.number_frames][rob_state.uid] = rob_state.to_robot_position()
         
     def close(self, **kwargs):
         #self.conn.close()
@@ -307,16 +344,16 @@ class Animator:
         self.fps = int(self.fps/5*self.label_controller.ONE_TICK*self.mid_frames)
         
     def get_robot_frame(self, frame_id):
-        return self.robots_data[frame_id]
+        return self.robots[frame_id]
     
     def draw_robot(self, robot_id, x_pix, y_pix, d, has_pckg):
+        print(f"drawing robot {robot_id} {x_pix} {y_pix} {d} {has_pckg}")
         # x, y -> coordinates in PIXELS! of left top corner of the rectangle
         #print(f"drawing robot {(robot_id, x_pix, y_pix, d)}")
         center = (x_pix + self.map_controller.tile_with_borders_size[0]//2, y_pix + self.map_controller.tile_with_borders_size[1]//2)
         pygame.draw.circle(self.map_controller.win, (0, 0, 0), center, self.robot_radius + 2)
         pygame.draw.circle(self.map_controller.win, self.robot_color, center, self.robot_radius)
-        if d >= 4:
-            d -= 4
+        d %= 2
         # d -> grads *= 90
         cos_phi = math.cos(d*math.pi/2)
         sin_phi = math.sin(d*math.pi/2)
@@ -324,7 +361,7 @@ class Animator:
         #     (-sin_phi, cos_phi)]
         x, y = 0, -(self.map_controller.tile_with_borders_size[0]//2 - 2)
         x, y = cos_phi*x - sin_phi*y, sin_phi*x + cos_phi*y
-        pygame.draw.line(self.map_controller.win, (0, 0, 0), center, end_pos = (center[0] + x, center[1] + y) , width = 5)
+        pygame.draw.line(self.map_controller.win, (0, 0, 0), (center[0] - x, center[1] - y), end_pos = (center[0] + x, center[1] + y) , width = 5)
         if has_pckg:
             pygame.draw.circle(self.map_controller.win, (0, 0, 0), center, self.robot_radius//2 + 2)
             pygame.draw.circle(self.map_controller.win, self.package_color, center, self.robot_radius//2)
@@ -338,17 +375,29 @@ class Animator:
     def draw_update(self):
         pygame.display.update() 
     
-    def draw(self, frame_id):
+    def draw(self):
         # we have previous positions in dict (robot id to position) and therefore need to make a few cadres
         # to do that we need to find those which locations have changed
-        new_positions = self.get_robot_frame(frame_id)
-        if len(new_positions) == 0:
-            self.number_frames = frame_id
-            return
-        clock = pygame.time.Clock()
+        """
+        self.draw_background(0)
+        for robot_position in self.robots[self.cur_frame_id].values():
+            self.draw_robot(None, robot_position.x * self.map_controller.tile_with_borders_size[0], robot_position.y * self.map_controller.tile_with_borders_size[1], int(robot_position.direct), robot_position.is_loaded)
+        self.win.blit(self.map_controller.win, self.map_controller.shifts)
+        self.draw_update()
+        self.clock.tick(3600/self.fps)
+        """
+        next_frame = (self.cur_frame_id + 1)%self.number_frames
         for mid_frame in range(self.mid_frames):
-            self.draw_background(frame_id)
-            for writing in new_positions:
+            self.draw_background(0)
+            for robot_id, robot_position in self.robots[self.cur_frame_id].items():
+                next_robot_position = self.robots[next_frame][robot_id]
+                old_x = robot_position.x
+                x = next_robot_position.x
+                old_y = robot_position.y
+                y = next_robot_position.y
+                old_d = int(robot_position.direct)
+                d = int(robot_position.direct)
+                
                 # example: (0, 0, 'rob_0', '5', '15', '1', 'True')
                 robot_id, x, y, d, has_package = writing[2:]
                 x, y, d = int(x), int(y), int(d)
@@ -364,10 +413,6 @@ class Animator:
             self.win.blit(self.map_controller.win, self.map_controller.shifts)
             self.draw_update()
             self.clock.tick(3600/self.fps)
-        for writing in new_positions:
-            robot_id, x, y, d, has_package = writing[2:]
-            x, y, d = int(x), int(y), int(d)
-            self.robots[robot_id] = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1], d
         
     def show(self):
         while True:
@@ -379,29 +424,26 @@ class Animator:
             self.clock.tick(1)
             
     def display(self):
-        frame_id = 0
-        self.robots = dict()
-        while frame_id < self.number_frames:
+        self.cur_frame_id
+        timedelta_frame = timedelta(seconds = self.frame_duration)
+        while not self.log_iterator.is_end:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit(); 
-            self.draw(frame_id)
+            self.update_frame()
+            self.cur_timedelta += timedelta_frame
+            self.draw()
             #time.sleep(0.1)
-            frame_id += 1
-        self.robots = dict()
+            self.cur_frame_id += 1
+            self.cur_frame_id %= self.number_frames
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit(); sys.exit();    
     
-    def draw_zip(self, frame_id, dpath, cadre):
+    def draw_zip(self, dpath, cadre):
         # we have previous positions in dict (robot id to position) and therefore need to make a few cadres
-        # to do that we need to find those which locations have changed
-        new_positions = self.get_robot_frame(frame_id)
-        
-        if len(new_positions) == 0:
-            self.number_frames = frame_id
-            return        
+        # to do that we need to find those which locations have changed      
         
         for mid_frame in range(self.mid_frames):
             self.draw_background(frame_id)
@@ -446,7 +488,6 @@ class Animator:
             self.number_frames = min(self.number_frames, max_frames)
         frame_id = 0
         cadre = 0
-        self.robots = []
         self.images = []
         bar = tqdm(range(self.number_frames))
         while frame_id < self.number_frames:
@@ -456,7 +497,6 @@ class Animator:
         print(f"\n{datetime.now().strftime('%H:%M:%S')}: started generating zip")
         imageio.mimsave(fpath, self.images, fps=self.fps)
         print(f"{datetime.now().strftime('%H:%M:%S')}: result saved to {fpath}")
-        self.robots = dict()
         self.images = []
         
         for f in glob.glob(f'{dpath}/*'):
@@ -483,7 +523,7 @@ if __name__ == "__main__":
     anim = Animator(obs_config_path, 
                        5, True, 
                        show_tile_direction = True)  
-    anim.show()
+    anim.display()
     """
     print(f"elements in sklad: {doc.elements}")
     print(f"elements in sklad: {len(doc.elements)}")

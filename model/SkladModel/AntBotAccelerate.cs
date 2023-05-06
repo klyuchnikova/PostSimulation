@@ -5,16 +5,16 @@ using System.Linq;
 
 namespace SkladModel
 {
-    public class AntBootAccelerate : AntBotAbstractEvent
+    public class AntBotAccelerate : AntBotAbstractEvent
     {
         Direction direction;
 
         public override AntBotAbstractEvent Clone()
         {
-            return new AntBootAccelerate(antBot, direction);
+            return new AntBotAccelerate(antBot, direction);
         }
-        public AntBootAccelerate() { }
-        public AntBootAccelerate(AntBot antBot, Direction direction) 
+        public AntBotAccelerate() { }
+        public AntBotAccelerate(AntBot antBot, Direction direction) 
         {
             this.antBot = antBot;
             this.direction = direction;
@@ -52,7 +52,6 @@ namespace SkladModel
             antBot.isFree = false;
             antBot.waitTime = getEndTime();
             antBot.state = AntBotState.Accelerating;
-
 
             if (antBot.commandList != null
                 && antBot.commandList.commands.Count > 0
