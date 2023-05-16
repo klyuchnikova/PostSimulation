@@ -583,6 +583,7 @@ namespace ControlModel
                 return;
             if (minBotPath.cList.AddCommand(new AntBotCharge(antBot), false))
             {
+                // --!
                 var escapePath = getPathToEscape(minBotPath.cList);
                 if (escapePath.isPathExist)
                 {

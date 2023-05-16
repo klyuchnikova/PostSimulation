@@ -64,6 +64,7 @@ namespace SkladModel
                     return antBot.sklad.getMetric(this);
             }
         }
+
         public CommandList(AntBot antBot) {
             this.antBot = antBot;
             antState = antBot.ShalowClone();
@@ -134,6 +135,7 @@ namespace SkladModel
             }
             else
             {
+                //--!
                 if (!abstractEvent.CheckReservation())
                 {
                     return false;
@@ -179,6 +181,7 @@ namespace SkladModel
         public int targetXCoordinate;
         public int targetYCoordinate;
         public bool targetDirection;
+        public TimeSpan time_before_recount;
         public TimeSpan waitTime;
         public AntBotState state;
         public Sklad sklad;
@@ -281,7 +284,7 @@ namespace SkladModel
                 case AntBotState.Work:
                     if (charge <= 0)
                         return (lastUpdated, new AntBotUnCharging(this));
-                    timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy);
+                    // timeUncharged = lastUpdated + TimeSpan.FromSeconds(charge / sklad.skladConfig.unitWaitEnergy); --!
                     return (waitTime, new AntBotEndTask(this));
             }
             return (TimeSpan.MaxValue, null);
