@@ -94,7 +94,7 @@ namespace SkladModel
                     posibleTime = squareIsBusy[x][y][sb].endTime;
                 if (sb > from)
                 {
-                    if ((sb - posibleTime) > TimeSpan.FromSeconds(0.33))
+                    if ((sb - posibleTime) > TimeSpan.FromSeconds(0.33)) // to be able to move away
                         return posibleTime;
                     else 
                         posibleTime = squareIsBusy[x][y][sb].endTime;

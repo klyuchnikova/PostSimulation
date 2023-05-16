@@ -108,7 +108,7 @@ namespace SkladModel
             }
 
         }
-
+        
         public bool AddCommand(AntBotAbstractEvent abstractEvent, bool isNeedReserve = true)
         {
 
@@ -202,6 +202,11 @@ namespace SkladModel
         [XmlIgnore]
         public CommandList escapePath;
 
+        public (int x, int y, bool isXDirection) GetCurrentPoint()
+        {
+            return (xCord, yCord, isXDirection);
+        }
+
         private int nextShift(double speed)
         {
             if (speed > 0)
@@ -223,10 +228,16 @@ namespace SkladModel
                 return Math.Ceiling(yCoordinate) - yCoordinate;
             return 0;
         }
-        
-        public double EstimateTimeToMoveFunc(int x2, int y2, bool direction2)
+
+        public double EstimateTimeToMoveFunc((int x, int y, bool isXDirection) point_1, (int x, int y, bool isXDirection) point_2)
         {
-            return (Math.Abs(x2 - xCord) + Math.Abs(y2 - yCord)) * (1 / sklad.skladConfig.unitSpeed) + (Convert.ToInt32(isXDirection != direction2) + Convert.ToInt32((x2!=xCord)&&(y2!=yCord))) * sklad.skladConfig.unitRotateTime;
+            return (Math.Abs(point_1.x - point_2.x) + Math.Abs(point_1.y - point_2.y)) * (1 / sklad.skladConfig.unitSpeed) + 
+                (Convert.ToInt32(point_1.isXDirection != point_2.isXDirection) + 
+                Convert.ToInt32((point_1.x != point_2.x) && (point_1.y != point_2.y))) * sklad.skladConfig.unitRotateTime;
+        }
+        public double EstimateTimeToMoveFunc((int x, int y, bool isXDirection) point)
+        {
+            return EstimateTimeToMoveFunc(point, GetCurrentPoint());
         }
 
         public (int x, int y) getShift(int shift)
@@ -330,7 +341,6 @@ namespace SkladModel
 
         public int getFreePath()
         {
-
             TimeSpan startInterval = lastUpdated;
             TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(1.0 / sklad.skladConfig.unitSpeed);
             if (sklad.squaresIsBusy.CheckIsBusy(xCord, yCord, startInterval, endInterval, uid))

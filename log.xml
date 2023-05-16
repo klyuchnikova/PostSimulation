@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SkladLogger xmlns:sys="https://extendedxmlserializer.github.io/system" xmlns:exs="https://extendedxmlserializer.github.io/v2" xmlns="clr-namespace:SkladModel;assembly=SkladModel">
   <lastUpdated>P16DT16H0.0000001S</lastUpdated>
-  <uid>60e6afb4-1b1d-4606-9090-9e50430e902e</uid>
+  <uid>951f0200-1ad2-456f-aea2-f780ded61c79</uid>
   <sklad>
     <lastUpdated>PT0.0000001S</lastUpdated>
-    <uid>c8e2d629-68ee-4ca2-9bcf-b4e02fc3bac6</uid>
+    <uid>8bccb26a-91df-41f8-9a72-f31cf7f37643</uid>
     <skladLayout>
       <sys:Item>
         <Key>0</Key>
@@ -880,7 +880,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>c4c7e242-af48-4680-9be8-b4131710cafd</uid>
+      <uid>a3fcbc6d-2a0a-49e2-84fd-05be4273babd</uid>
       <lastUpdated>2E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -894,7 +894,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>d4072bc5-e062-427c-ad78-2458ee28755e</uid>
+      <uid>fba25f5c-b978-4d30-a11a-fa15cec31ada</uid>
       <lastUpdated>3E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -908,7 +908,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>ca46893e-3396-4ccc-80b2-eb8e74ea7424</uid>
+      <uid>862bb077-63fc-478c-8b15-9ca03002ab18</uid>
       <lastUpdated>4E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -922,7 +922,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>bde19ead-ca4c-4380-b84c-4bc9ad51c059</uid>
+      <uid>f55f1fb9-e87b-46d4-b522-430b2d287592</uid>
       <lastUpdated>5E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -936,7 +936,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>feabbdfd-f6c7-4fb1-a375-55a4c288509f</uid>
+      <uid>a263fde7-b209-4871-b368-bfee5503d4e2</uid>
       <lastUpdated>6E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -950,7 +950,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>e7594dfb-f700-4b01-98e0-e549488cb2e2</uid>
+      <uid>a8fc0328-9ecc-47bc-ae83-7d3675f5d324</uid>
       <lastUpdated>7E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -964,7 +964,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>3374115f-f198-4669-a69d-c5ddd7c17bb3</uid>
+      <uid>3c10e5de-d728-4d6b-8cf3-a94ec7d6804e</uid>
       <lastUpdated>8E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -978,7 +978,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>fd09ecd0-ed5d-4e64-8608-a7fad8f63203</uid>
+      <uid>dd733c47-3d64-4528-a855-31f42a1b8b9a</uid>
       <lastUpdated>9E-07</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -992,7 +992,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>0cd9c8ea-cc02-4b74-a0ff-1b7508c7b7d4</uid>
+      <uid>6e3b9d2b-001f-484e-aae0-825c22ca21ab</uid>
       <lastUpdated>1E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1006,7 +1006,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>a1ab1ed4-716a-4969-ab42-19c19d4b4f70</uid>
+      <uid>a8dd234d-132a-418b-a021-4ba4fa0e40b5</uid>
       <lastUpdated>1.1E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1020,7 +1020,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>2643f031-3d20-4342-8cd3-79b9b8c40746</uid>
+      <uid>c9eff3c2-7578-49dd-8bf3-07379abc8ebd</uid>
       <lastUpdated>1.2E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1034,7 +1034,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>16c20e88-9ab0-45ad-b8db-fcab22b8306a</uid>
+      <uid>342ef0c4-37dc-4b22-b358-71b16abada37</uid>
       <lastUpdated>1.3E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1048,7 +1048,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>7265cdcc-3b81-404c-8b07-1d9f05bc4a7b</uid>
+      <uid>11665e4f-36b1-4060-88d0-57e645120b0c</uid>
       <lastUpdated>1.4E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1062,7 +1062,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>719b7a6e-bb98-4003-a74e-530c23e009e2</uid>
+      <uid>37466de9-a676-46ed-a4aa-692e0b7ca5f5</uid>
       <lastUpdated>1.5E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1076,7 +1076,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>27545c36-b1ca-4211-a456-f5c7a436b106</uid>
+      <uid>fd5d77dd-e946-4f15-a9a1-9007540e7c5c</uid>
       <lastUpdated>1.6E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1090,7 +1090,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>fb3b753e-9406-4cec-9f8f-574072b61a60</uid>
+      <uid>a79183a8-8f71-46a5-9951-72e23a99f766</uid>
       <lastUpdated>1.7E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1104,7 +1104,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>75317013-d582-44a4-bc6d-0792ce65d26b</uid>
+      <uid>73bef425-b4cd-4624-92a5-b537fff775fc</uid>
       <lastUpdated>1.8E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1118,7 +1118,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>a774e59d-3e40-4a6d-ac95-01c7d156f640</uid>
+      <uid>2829bbe4-681f-4cba-8e4f-3fffafeeb022</uid>
       <lastUpdated>1.9E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1132,7 +1132,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>728020b0-b064-49b7-a185-003287151967</uid>
+      <uid>0f672c41-b412-4524-bd16-bac16693373f</uid>
       <lastUpdated>2E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1146,7 +1146,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>b02b416f-fa7c-4238-a86b-1281f5a44b3b</uid>
+      <uid>631829d4-a3f4-41a0-a341-bacdb6912fde</uid>
       <lastUpdated>2.1E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1160,7 +1160,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>760a45d1-a50b-4580-83b3-5f166c858ece</uid>
+      <uid>dc56315c-630d-416f-b5d4-07ce0e9fee48</uid>
       <lastUpdated>2.2E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1174,7 +1174,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>e0dfccd2-b3e8-4be4-b731-cf129f265eb3</uid>
+      <uid>6cf0094c-c28c-4a80-b233-ce1dfe576f45</uid>
       <lastUpdated>2.3E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1188,7 +1188,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>5d3cf2ed-7646-43ab-a8f8-cd0531c13ba6</uid>
+      <uid>fcccd448-3522-40ff-8f7c-ea107a777bf1</uid>
       <lastUpdated>2.4E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1202,7 +1202,7 @@
       <ySpeed>0</ySpeed>
       <charge>7200</charge>
       <isLoaded>false</isLoaded>
-      <uid>605e0a34-d1fc-45e5-b01d-a57f2e34e99d</uid>
+      <uid>367af28a-c843-43a3-899a-79ce13eccb4f</uid>
       <lastUpdated>2.5E-06</lastUpdated>
       <state>Wait</state>
       <command>Create AntBot</command>
@@ -1216,7 +1216,7 @@
       <ySpeed>0</ySpeed>
       <charge>0</charge>
       <isLoaded>false</isLoaded>
-      <uid>c4c7e242-af48-4680-9be8-b4131710cafd</uid>
+      <uid>a3fcbc6d-2a0a-49e2-84fd-05be4273babd</uid>
       <lastUpdated>1440000.0000001</lastUpdated>
       <state>UnCharged</state>
       <command>UnCharging</command>
