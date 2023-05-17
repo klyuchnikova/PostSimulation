@@ -89,25 +89,6 @@ namespace SkladModel
             cl.MoveOnUnload = MoveOnUnload;
             return cl;
         }
-
-        public void ClearCommands(bool isNeedReserve = true)
-        {
-            // --!
-            if (antState.commandList == null)
-            {
-                return;
-            }
-            if (antState.isClone || antState.isDebug)
-            {
-                // those are special, i think it would be logical to delete them completely
-            }
-
-            foreach ((TimeSpan key, AntBotAbstractEvent ev) in antState.commandList.commands)
-            { 
-
-            }
-
-        }
         
         public bool AddCommand(AntBotAbstractEvent abstractEvent, bool isNeedReserve = true)
         {
@@ -135,7 +116,7 @@ namespace SkladModel
             }
             else
             {
-                //--!
+                //--! does it mean that event without reservation breaks
                 if (!abstractEvent.CheckReservation())
                 {
                     return false;
@@ -183,6 +164,9 @@ namespace SkladModel
         public bool targetDirection;
         public TimeSpan time_before_recount;
         public TimeSpan waitTime;
+        // this variable states the approximate time since start of simulation
+        // when the commands should be recalculated (recalculations will only happen after command is finished)
+        public TimeSpan recalculateHorizon = TimeSpan.Zero;
         public AntBotState state;
         public Sklad sklad;
         public SkladLogger skladLogger;
@@ -300,8 +284,6 @@ namespace SkladModel
             }
             return (TimeSpan.MaxValue, null);
         }
-
-
 
         public double getSecond(TimeSpan timeSpan)
         {

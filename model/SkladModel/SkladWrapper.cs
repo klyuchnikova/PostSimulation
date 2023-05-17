@@ -73,6 +73,14 @@ namespace SkladModel
             return GetAllAnts().FindAll(x => x.isFree);
         }
 
+        public List<AntBot> GetAvailableAnts()
+        {
+            // returns all bots which need command calculation
+            return GetAllAnts().FindAll(ant =>
+                ant.isFree || (ant.recalculateHorizon >= ant.lastUpdated)
+            );
+        }
+
         public List<AntBot> GetFreeUnloadedAnts()
         {
             return GetAllAnts().FindAll(x => x.

@@ -87,111 +87,83 @@ namespace ControlModel
                     Console.WriteLine("UNCHARGED"); // --! this check should be moved
                     break;
                 }
-                else if (numberFreeAnt == skladWrapper.GetFreeAnts().Count)
-                {
-                    continue;
-                }
 
                 MakeCommands();
-                numberFreeAnt = skladWrapper.GetFreeAnts().Count;
             }
         }
 
         private void MakeCommands()
         {
-            skladWrapper.GetFreeAnts().ForEach(ant =>
+            skladWrapper.GetAvailableAnts().ForEach(ant =>
             {
                 if (ant.isLoaded)
                 {
-                    //RunToTarget(ant); --!
+                    RunToDrop(ant);
                 }
-                else if (ant.charge < optimalChargeValue)
+                else if (ant.hasNoTarget &&
+                         ant.charge < optimalChargeValue)
                 {
                     RunToChargePoint(ant);
                 }
-                else
+                else { RunToLoadPoint(ant); }
+
+                // each of the previous commands
+                // 1) unreserves path
+                // 2) tries to build a path without conflicts and reserve it
+                // 3) if it failed empties commands anyway
+
+                if (ant.isFree && ant.isOnTarget)
                 {
-                    RunToLoadPoint(ant);
+                    TryRunToFreePoint(ant);
                 }
             });
         }
 
-        private void TryRunToFreePoint(List<AntBot> antBots)
+        private FreeCommandsWithExtendedOccupation(AntBot antbot)
         {
-            foreach (var ant in antBots)
+            // ant Bot is ONE HUDREN PERCENT on the edge of starting a new task
+            antbot.CleanReservation();
+            antbot.commandList = new CommandList(antbot);
+            antbot.isFree = true;
+        }
+
+        private void RunToDrop(AntBot antBot)
+        {
+            // --! if right now is occupied with drop/load/charge -> we can't drop
+            // always has a destination (target) already
+            FreeCommandsWithExtendedOccupation(antBot);
+            var path = WHCAStarBuildPath(antBot, (antBot.targetXCoordinate, antBot.targetYCoordinate, antBot.targetDirection));
+            if (path.doesExist)
             {
-                if (ant.reserved.Count > 0)
-                {
-                    if (ant.reserved.Any(r => r.x == ant.xCord && r.y == ant.yCord && (r.from - ant.lastUpdated).TotalSeconds < 0.0001 && r.to == TimeSpan.MaxValue))
-                        continue;
-                }
-                var gp = getPath(ant, ant.sklad.source[0]);
-                double min = double.MaxValue;
-                TimeSpan minTime = TimeSpan.MaxValue;
-                TimeSpan posibleReserve = TimeSpan.MaxValue;
-                CommandList minPath = new CommandList(ant);
-                CommandList minPosiblePath = new CommandList(ant);
-                ant.CleanReservation();
-                ant.commandList = new CommandList(ant);
-                TimeSpan maxReserve = TimeSpan.Zero;
-                foreach (var xKey in state.Keys)
-                {
-                    foreach (var yKey in state[xKey].Keys)
-                    {
-                        if (state[xKey][yKey].xMinMetric < min)
-                        {
-                            if (ant.CheckRoom(xKey, yKey, state[xKey][yKey].xMinTime, TimeSpan.MaxValue))
-                            {
-                                min = state[xKey][yKey].xMinMetric;
-                                minTime = state[xKey][yKey].xMinTime;
-                                minPath = state[xKey][yKey].xCommands;
-                            } else
-                            {
-                                var mr = ant.sklad.squaresIsBusy.GetPosibleReserve(xKey, yKey, state[xKey][yKey].xMinTime);
-                                if (mr > maxReserve)
-                                {
-                                    maxReserve = mr;
-                                    minPosiblePath = state[xKey][yKey].xCommands;
-                                }
-                            }
-                        }
-                        if (state[xKey][yKey].yMinMetric < min)
-                        {
-                            if (ant.CheckRoom(xKey, yKey, state[xKey][yKey].yMinTime, TimeSpan.MaxValue))
-                            {
-                                min = state[xKey][yKey].yMinMetric;
-                                minTime = state[xKey][yKey].yMinTime;
-                                minPath = state[xKey][yKey].yCommands;
-                            }
-                            else
-                            {
-                                var mr = ant.sklad.squaresIsBusy.GetPosibleReserve(xKey, yKey, state[xKey][yKey].yMinTime);
-                                if (mr > maxReserve)
-                                {
-                                    maxReserve = mr;
-                                    minPosiblePath = state[xKey][yKey].yCommands;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (minTime != TimeSpan.MaxValue)
-                {
-                    applyPath(ant, minPath);
-                    ant.commandList.antState.ReserveRoom(minTime, TimeSpan.MaxValue);
-                    ant.isFree = false;
-                } else
-                {
-                    if (maxReserve >= ant.lastUpdated + TimeSpan.FromSeconds(1.0 / 3.0))
-                    {
-                        applyPath(ant, minPosiblePath);
-                        ant.commandList.antState.ReserveRoom(ant.commandList.lastTime, maxReserve);
-                    }
-                    else
-                        throw new ImposibleFoundWay();
-                }
+                addPath(antBot, path.commandList);
             }
         }
+
+        private void RunToChargePoint(AntBot antBot)
+        {
+            // uloaded, maybe is moving towards a queue already
+            // still, we'll simply reassighn target, this doesn't matter much
+            FreeCommandsWithExtendedOccupation(antBot);
+            var build_commands = WHCAStarBuildEscapePath(antBot);
+            applyPath(antBot, build_commands);
+
+        }
+        private void RunToLoadPoint(AntBot antBot)
+        {
+            // run to closest source
+            // after receiving a package empties the command List and
+            // resets reservation immidiately. Also sets a destination (drop)
+        }
+
+        private void TryRunToFreePoint(AntBot antBot)
+        {
+            // doesn't set target - only comands
+
+            // in this case the bot is already standing on one place just fine (???)
+            if (ant.reserved.Count > 0 && ant.reserved.Any(r => r.x == ant.xCord && r.y == ant.yCord && (r.from - ant.lastUpdated).TotalSeconds < 0.0001 && r.to == TimeSpan.MaxValue))
+                return;
+        }
+
         void RunToLoadPoint(AntBot freeAnt)
         {
             // instead of running to the queue we'll try to either stand in a queue or move to a free point to get out of the way
@@ -295,11 +267,12 @@ namespace ControlModel
             }
         }
 
-        private double EstimateDistance()
+        private (bool doesExist, CommandList path) WHCAStarBuildPath(AntBot antBot, (int x, int y, bool isXDirection) goal, List<AntBotAbstractEvent> actions_on_goal)
         {
-        }
-        private void WHCAStarBuildPath(AntBot antBot, (int x, int y, bool isXDirection) goal)
-        {
+            // first try to build commands to reach goal within time window.
+            // then add actions_on_goal if goal is reachable within window
+            // if after all there's still time - try to build escape path
+
             var frontier = new PriorityQueue<CommandList, double>();
             frontier.Enqueue(new CommandList(antBot), 0);
             var came_from = new Dictionary<(int x, int y, bool isXDirection), CommandList>();
@@ -326,9 +299,23 @@ namespace ControlModel
                     // but here we'll use A* once again
                     // also we won't store these commands anywhere nor reserve them. All we need is an approximate cost
                     // of course we could not only use ML for this matter but also Gene-based algorithms, yet we won't
-                    // --!
+                    // --! state -> we can use this Shit just in case...
                     // finally WE WILL HAVE TO PUT x, y, dir as final in antState!!!
                     // ALSO WE HAVE TO PUT cost_so_far[goal] TO THIS PARTICULAR lastTime
+                    TimeSpan last_time = current.lastTime;
+                    (int x, int y, bool isXDirection) finish_point = current.antState.GetCurrentPoint();
+                    last_time += TimeSpan.FromSeconds(antBot.EstimateTimeToMoveFunc(goal, finish_point));
+                    if (!cost_so_far.ContainsKey(goal) || last_time < cost_so_far[goal])
+                    {
+                        cost_so_far[goal] = last_time;
+                        double priority = last_time.TotalSeconds + antBot.EstimateTimeToMoveFunc(goal, finish_point);
+                        frontier.Enqueue(commandList, priority);
+                        came_from[finish_point] = commandList;
+                    }
+                    current.antState.xCoordinate = goal.x;
+                    current.antState.yCoordinate = goal.y;
+                    current.antState.isXDirection = goal.isXDirection;
+
                 }
 
                 foreach (var commandList in GetPossibleCommands(current.antState)) // (TimeSpan Key, AntBotAbstractEvent Ev)
@@ -348,23 +335,39 @@ namespace ControlModel
             // 1. first case : we didn't reach the goal => stand still (in the cycle we'll have to reassighn commands)
             // 2. second case : reached the goal within window => we have to count + reserve escape path
             // 3. third case : path found yet goal was reached out of reservation => simply assighn commands
-            if (current.antState.xCord == goal.x && current.antState.yCord == goal.y && current.antState.direction == goal.isXDirection)
+            if (current.antState.xCord == goal.x && current.antState.yCord == goal.y && current.antState.isXDirection == goal.isXDirection)
             {
-                if (cost_so_far[finish_point] > cooperate_until)
+                if (cost_so_far[current.antState.GetCurrentPoint()] > cooperate_until)
                 {
                     // 3
-                    applyPath(antBot, current);
+                    return (true, current);
                 }
                 else
                 {
                     // 2
-                    // --!
+                    var path_to_free = WHCAStarBuildEscapePath(current.antState, max(cooperate_until, current.lastTime+TimeStamp.DromSeconds(3)));
+                    if (path_to_free.doesExist)
+                    {
+                        // --!
+                        // ExtendPath current by path_to_free.path
+                    }
                 }
             }
+            return (false, null);
+        }
+
+        private (bool doesExist, CommandList path) WHCAStarBuildEscapePath(AntBot antBot, TimeSpan TIME_WINDOW)
+        {
+            // TIME_WINDOW is supposed to be time from antBot state until which we'll count theb path considering the reservation
+            //  AntBot antBot = cList.antState.ShalowClone();
+            // antBot.lastUpdated = cList.lastTime;
+            // var gr = graph.Peek();
+            // if (gr.Value.antState.CheckRoom(gr.Value.lastTime, TimeSpan.MaxValue))
+            return (false, null);
         }
 
 
-            Dictionary<int, Dictionary<int, squareState>> state;
+        Dictionary<int, Dictionary<int, squareState>> state;
         public Dictionary<int, Dictionary<int, int>> skladLayout;
         public FibonacciHeap<double, CommandList> graph;
         private bool RunToPoint(AntBot antBot, (int x, int y, bool isXDirection) point)
@@ -415,225 +418,6 @@ namespace ControlModel
                 }
             }
         }
-
-        private void initGraph(AntBot antBot)
-        {
-            AntBot ant = antBot.ShalowClone();
-            graph = new FibonacciHeap<double, CommandList>();
-            ant.commandList = new CommandList(ant);
-            if (ant.isXDirection)
-            {
-                if (ant.commandList.metric < state[ant.xCord][ant.yCord].xMinMetric)
-                {
-                    state[ant.xCord][ant.yCord].xMinTime = ant.lastUpdated;
-                    state[ant.xCord][ant.yCord].xMinMetric = ant.commandList.metric;
-                    state[ant.xCord][ant.yCord].xCommands = ant.commandList.Clone();
-                    graph.Push(state[ant.xCord][ant.yCord].xMinMetric, state[ant.xCord][ant.yCord].xCommands);
-                }
-            }
-            else
-            {
-                if (ant.commandList.metric < state[ant.xCord][ant.yCord].yMinMetric)
-                {
-                    state[ant.xCord][ant.yCord].yMinTime = ant.lastUpdated;
-                    state[ant.xCord][ant.yCord].yMinMetric = ant.commandList.metric;
-                    state[ant.xCord][ant.yCord].yCommands = ant.commandList.Clone();
-                    graph.Push(state[ant.xCord][ant.yCord].xMinMetric, state[ant.xCord][ant.yCord].yCommands);
-                }
-            }
-        }
-
-
-
-        private (bool isPathExist, CommandList cList) getPathToEscape(CommandList cList)
-        {
-            AntBot antBot = cList.antState.ShalowClone();
-            antBot.lastUpdated = cList.lastTime;
-            initState(antBot);
-            initGraph(antBot);
-            while (true)
-            {
-                NextStep(antBot);
-                if (graph.Count() == 0)
-                    return (false, null);
-
-                var gr = graph.Peek();
-                if (gr.Value.antState.CheckRoom(gr.Value.lastTime, TimeSpan.MaxValue))
-                    if (skladLayout[gr.Value.antState.yCord][gr.Value.antState.xCord] == 1)
-                        return (true, gr.Value);
-            }
-        }
-
-        private (bool isPathExist, CommandList cList) getPath(AntBot antBot, (int x, int y, bool isXDirection) point)
-        {
-            CommandList cList;
-            initState(antBot);
-            initGraph(antBot);
-
-            while (true)
-            {
-                NextStep(antBot);
-                if (point.isXDirection)
-                {
-                    if (state[point.x][point.y].xMinTime != TimeSpan.MaxValue)
-                    {
-                        cList = state[point.x][point.y].xCommands;
-                        break;
-                    }
-                }
-                else
-                {
-                    if (state[point.x][point.y].yMinTime != TimeSpan.MaxValue)
-                    {
-                        cList = state[point.x][point.y].yCommands;
-                        break;
-                    }
-                }
-                if (graph.Count() == 0)
-                    return (false, null);
-            }
-            return (true, cList);
-        }
-
-        void NextStep(AntBot antBot)
-        {
-            var commandList = graph.Pop().Value;
-            var ant = commandList.antState;
-            var st = state[ant.xCord][ant.yCord];
-            if (st.yMinMetric > commandList.metric)
-            {
-                var st1 = commandList.Clone();
-                if (st1.AddCommand(new AntBotRotate(antBot), false))
-                {
-                    st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                    if (st1.metric < st.yMinMetric)
-                    {
-                        state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
-                        state[st1.antState.xCord][st1.antState.yCord].yMinMetric = st1.metric;
-                        state[st1.antState.xCord][st1.antState.yCord].yCommands = st1;
-                        graph.Push(st1.metric, st1);
-                    }
-                }
-
-            }
-            if (st.xMinMetric > commandList.metric)
-            {
-                var st1 = commandList.Clone();
-                if (st1.AddCommand(new AntBotRotate(antBot), false))
-                {
-                    st1.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                    if (st1.metric < st.xMinMetric)
-                    {
-                        state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
-                        state[st1.antState.xCord][st1.antState.yCord].xMinMetric = st1.metric;
-                        state[st1.antState.xCord][st1.antState.yCord].xCommands = st1;
-                        graph.Push(st1.metric, st1);
-                    }
-                }
-
-            }
-            for (int i = 0; i < 4; i++)
-            {
-                Direction dir = (Direction)i;
-                if (ant.isXDirection && (dir == Direction.Up || dir == Direction.Down))
-                    continue;
-                if (!ant.isXDirection && (dir == Direction.Left || dir == Direction.Right))
-                    continue;
-                int dist = skladWrapper.getFreePath(ant, dir, ant.lastUpdated);
-
-                var waitSt = commandList.Clone();
-                if (dist == 0) 
-                    if (!waitSt.antState.CheckRoom(waitSt.lastTime, waitSt.lastTime +
-                    TimeSpan.FromSeconds(1.0 / waitSt.antBot.sklad.skladConfig.unitSpeed))) 
-                    {                 
-                        continue;
-                    }
-                waitSt.antState.setSpeedByDirection(dir);
-                waitSt.antState.xCoordinate += waitSt.antState.xSpeed * (dist + 1) / antBot.sklad.skladConfig.unitSpeed;
-                waitSt.antState.yCoordinate += waitSt.antState.ySpeed * (dist + 1) / antBot.sklad.skladConfig.unitSpeed;
-                var near = antBot.sklad.squaresIsBusy.GetNearestReserve(waitSt.antState.xCord,
-                    waitSt.antState.yCord, waitSt.lastTime + TimeSpan.FromSeconds((double)dist/ antBot.sklad.skladConfig.unitSpeed));
-                
-                if (near != TimeSpan.MaxValue)
-                {
-                    if (near > waitSt.lastTime)
-                    {
-                        waitSt = commandList.Clone();
-                        if (dist != 0)
-                        {
-                            waitSt.AddCommand(new AntBotAccelerate(antBot, dir), false);
-                            waitSt.AddCommand(new AntBotMove(antBot, dist), false);
-                            waitSt.AddCommand(new AntBotStop(antBot, false), false);
-                        }
-                        if (waitSt.AddCommand(new AntBotWait(antBot, near - waitSt.lastTime), false))
-                        {
-                            waitSt.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false);
-                            if (waitSt.AddCommand(new AntBotAccelerate(antBot, dir), false))
-                            {
-                                waitSt.AddCommand(new AntBotMove(antBot, 1), false);
-                                waitSt.AddCommand(new AntBotStop(antBot, false), false);
-                                if (waitSt.antState.isXDirection)
-                                {
-                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].xMinMetric > waitSt.metric + 0.1)
-                                    {
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xMinTime = waitSt.lastTime;
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xMinMetric = waitSt.metric;
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].xCommands = waitSt;
-                                        graph.Push(waitSt.metric, waitSt);
-                                    }
-                                } else
-                                {
-                                    if (state[waitSt.antState.xCord][waitSt.antState.yCord].yMinMetric > waitSt.metric + 0.1)
-                                    {
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yMinTime = waitSt.lastTime;
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yMinMetric = waitSt.metric;
-                                        state[waitSt.antState.xCord][waitSt.antState.yCord].yCommands = waitSt;
-                                        graph.Push(waitSt.metric, waitSt);
-                                    }
-                                }
-
-                            }
-
-                        }
-
-                    }
-                }
-                for (int dst = 1; dst <= dist; dst++)
-                {
-                    if (ant.isXDirection)
-                    {
-                        var st1 = commandList.Clone();
-                        st1.AddCommand(new AntBotAccelerate(antBot, dir), false);
-                        st1.AddCommand(new AntBotMove(antBot, dst), false);
-                        st1.AddCommand(new AntBotStop(antBot, false), false);
-                        
-                        if (state[st1.antState.xCord][st1.antState.yCord].xMinMetric > st1.metric + 0.1)
-                        {
-                            state[st1.antState.xCord][st1.antState.yCord].xMinTime = st1.lastTime;
-                            state[st1.antState.xCord][st1.antState.yCord].xMinMetric = st1.metric;
-                            state[st1.antState.xCord][st1.antState.yCord].xCommands = st1;
-                            graph.Push(st1.metric, st1);
-                        }
-                    }
-                    else
-                    {
-                        var st1 = commandList.Clone();
-                        st1.AddCommand(new AntBotAccelerate(antBot, dir), false);
-                        st1.AddCommand(new AntBotMove(antBot, dst), false);
-                        st1.AddCommand(new AntBotStop(antBot, false), false);
-                        if (state[st1.antState.xCord][st1.antState.yCord].yMinMetric > st1.metric + 0.1)
-                        { 
-                            state[st1.antState.xCord][st1.antState.yCord].yMinTime = st1.lastTime;
-                            state[st1.antState.xCord][st1.antState.yCord].yMinMetric = st1.metric;
-                            state[st1.antState.xCord][st1.antState.yCord].yCommands = st1;
-                            graph.Push(st1.metric, st1);
-                        }
-                    }
-                }
-            }
-            //xPrintState();
-            //yPrintState();
-        }
         private void xPrintState()
         {
             Console.WriteLine("xState");
@@ -663,42 +447,6 @@ namespace ControlModel
                         Console.Write(String.Format("{0:0.00}", state[x][y].yMinTime.TotalSeconds) + " ");
                 }
                 Console.WriteLine();
-            }
-        }
-
-        private void RunToChargePoint(AntBot antBot)
-        {
-            (AntBot bot, CommandList cList, TimeSpan minTime) minBotPath = (null, null, TimeSpan.MaxValue);
-            antBot.sklad.charge.ForEach(charge =>
-            {
-                var gp = getPath(antBot, charge);
-                if (gp.isPathExist)
-                {
-                    if (gp.cList.lastTime < minBotPath.minTime)
-                    {
-                        minBotPath.minTime = gp.cList.lastTime;
-                        minBotPath.bot = antBot;
-                        minBotPath.cList = gp.cList;
-                    }
-                }
-            });
-            if (minBotPath.bot == null)
-                return;
-            if (minBotPath.cList.AddCommand(new AntBotCharge(antBot), false))
-            {
-                // --!
-                var escapePath = getPathToEscape(minBotPath.cList);
-                if (escapePath.isPathExist)
-                {
-                    minBotPath.cList.commands.ForEach(c => c.Ev.antBot = antBot); ;
-                    applyPath(antBot, minBotPath.cList);
-                    antBot.isFree = false;
-                    AntBot ant = minBotPath.cList.antState.ShalowClone();
-                    ant.commandList = new CommandList(ant);
-                    ant.lastUpdated = minBotPath.cList.lastTime;
-                    escapePath.cList.AddCommand(new AntBotStop(ant));
-                    reservePath(ant, escapePath.cList);
-                }
             }
         }
     }
