@@ -38,9 +38,6 @@ namespace SkladModel
             antBot.yCoordinate = antBot.yCord;
             antBot.xSpeed = 0;
             antBot.ySpeed = 0;
-            antBot.targetXCoordinate = unloadPoint.x;
-            antBot.targetYCoordinate = unloadPoint.y;
-            antBot.targetDirection = unloadPoint.Direction;
             antBot.charge -= antBot.sklad.skladConfig.unitUnloadEnergy;
             antBot.state = AntBotState.Unloading;
             antBot.isLoaded = false;

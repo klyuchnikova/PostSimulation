@@ -45,7 +45,7 @@ namespace SkladModel
 
         public AntBot antBot;
         public AntBot antState;
-        public AntBot debugAnt;
+        public string uid;
         public TimeSpan lastTime;
 
         public int RotateOnLoad = 0;
@@ -66,9 +66,9 @@ namespace SkladModel
         }
 
         public CommandList(AntBot antBot) {
+            uid = Guid.NewGuid().ToString();
             this.antBot = antBot;
             antState = antBot.ShalowClone();
-            debugAnt = antBot.ShalowClone();
             antState.commandList = new CommandList();
             lastTime = antBot.lastUpdated;
         }
@@ -77,7 +77,6 @@ namespace SkladModel
         {
             CommandList cl = new CommandList(antBot);
             cl.antState = antState.ShalowClone();
-            cl.debugAnt = debugAnt.ShalowClone();
             commands.ForEach(c => {
                 var ev = c.Ev.Clone();
                 cl.commands.Add((c.Key, ev));
@@ -136,7 +135,6 @@ namespace SkladModel
             MoveOnLoad += abstractEvent.MoveOnLoad;
             MoveOnUnload += abstractEvent.MoveOnUnload;
             abstractEvent.antBot = antBot;
-            debugAnt = antState.ShalowClone();
             return true;
         }
 
@@ -159,7 +157,7 @@ namespace SkladModel
         public double charge;
         public bool isLoaded;
         public bool isFree;
-        public int targetXCoordinate;
+        public int targetXCoordinate = -1;
         public int targetYCoordinate;
         public bool targetDirection;
         public TimeSpan time_before_recount;
@@ -185,6 +183,11 @@ namespace SkladModel
 
         [XmlIgnore]
         public CommandList escapePath;
+
+        public bool hasNoTarget()
+        {
+            return targetXCoordinate != -1;
+        }
 
         public (int x, int y, bool isXDirection) GetCurrentPoint()
         {
