@@ -19,14 +19,28 @@ namespace ControlModel
         public int y;
         public bool isXDirection;
     }
-    class squareState
+    public static class ArrayExtensions
     {
-        public squareState()
+        public static void Fill(this Array array, object value)
         {
+            var indicies = new int[array.Rank];
 
+            Fill(array, 0, indicies, value);
         }
-        public TimeSpan xMinTime = TimeSpan.MaxValue;
-        public TimeSpan yMinTime = TimeSpan.MaxValue;
+
+        public static void Fill(Array array, int dimension, int[] indicies, object value)
+        {
+            if (dimension < array.Rank)
+            {
+                for (int i = array.GetLowerBound(dimension); i <= array.GetUpperBound(dimension); i++)
+                {
+                    indicies[dimension] = i;
+                    Fill(array, dimension + 1, indicies, value);
+                }
+            }
+            else
+                array.SetValue(value, indicies);
+        }
     }
     public class MoveSort
     {
@@ -69,6 +83,7 @@ namespace ControlModel
             skladHeight = sklad.skladLayout.Count; 
             skladWidth = sklad.skladLayout[0].Count;
             InitopimalPathEstimation();
+            // PrintEstimationMap();
             optimalChargeValue = sklad.skladConfig.unitChargeValue * 0.8;
 
             while (skladWrapper.Next())
@@ -187,65 +202,71 @@ namespace ControlModel
                 new AntBotCharge(antBot),
                 new AntBotWait(antBot, TimeSpan.Zero)};
 
-            List<(int x, int y, bool isXDirection)> sources = antBot.sklad.charge;
-            double closest_time = Double.MaxValue;
+            // finding the closest source to assighn to
+            var actions_on_load = new List<AntBotAbstractEvent>() { new AntBotLoad(antBot) };
 
-            (int x, int y, bool isXDirection) closest_source = (0, 0, true);
-            foreach (var source in sources)
+            var targets = new List<((int x, int y, bool isXDirection) source, double estimated_time)>();
+            foreach (var target_point in antBot.sklad.charge)
             {
-                // --! will need to count number assigned to evade crowds + number of packages at the moment to estimate the efficiency
-                double estimated_time = antBot.EstimateTimeToMoveFunc((source.x, source.y, source.isXDirection));
-                if (estimated_time < closest_time)
-                {
-                    closest_time = estimated_time;
-                    closest_source = source;
-                }
+                targets.Add((target_point, EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
             };
 
-            FreeCommandsWithExtendedOccupation(antBot);
-            var path = WHCAStarBuildPath(antBot, closest_source, actions_on_charge);
-            if (path.doesExist)
+            targets.Sort((first, second) =>
             {
-                addPath(antBot, path.path);
-                antBot.targetXCoordinate = closest_source.x;
-                antBot.targetYCoordinate = closest_source.y;
-                antBot.targetDirection = closest_source.isXDirection;
+                return first.estimated_time.CompareTo(second.estimated_time);
+            });
+
+            FreeCommandsWithExtendedOccupation(antBot);
+            foreach (var target in targets)
+            {
+                var closest_source = target.source;
+                var path = WHCAStarBuildPath(antBot, closest_source, actions_on_load);
+                if (path.doesExist)
+                {
+                    addPath(antBot, path.path);
+                    antBot.targetXCoordinate = closest_source.x;
+                    antBot.targetYCoordinate = closest_source.y;
+                    antBot.targetDirection = closest_source.isXDirection;
+                    break;
+                }
             }
         }
         private void RunToLoadPoint(AntBot antBot)
         {
             // run to closest source
             // after receiving a package empties the command List and
-            // resets reservation immidiately cause we don't want to stand although since we're free I suppose we could still reconsider.
+            // resets reservation immidiately cause we don't want to stand although since we're free
+            // I suppose we could still reconsider.
             // Also sets a destination (drop)
             // (all of it happens in AntBotUnload event)
 
             // finding the closest source to assighn to
             var actions_on_load = new List<AntBotAbstractEvent>() {new AntBotLoad(antBot)};
 
-            List<(int x, int y, bool isXDirection)> sources = antBot.sklad.charge;
-            double closest_time = Double.MaxValue;
-
-            (int x, int y, bool isXDirection) closest_source = (0, 0, true);
-            foreach (var source in sources)
+            var targets = new List<((int x, int y, bool isXDirection) source, double estimated_time)>();
+            foreach (var target_point in antBot.sklad.source)
             {
-                // --! will need to count number assigned to evade crowds + number of packages at the moment to estimate the efficiency
-                double estimated_time = antBot.EstimateTimeToMoveFunc((source.x, source.y, source.isXDirection));
-                if (estimated_time < closest_time)
-                {
-                    closest_time = estimated_time;
-                    closest_source = source;
-                }
+                targets.Add((target_point, EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
             };
 
-            FreeCommandsWithExtendedOccupation(antBot);
-            var path = WHCAStarBuildPath(antBot, closest_source, actions_on_load);
-            if (path.doesExist)
+            targets.Sort((first, second) =>
             {
-                addPath(antBot, path.path);
-                antBot.targetXCoordinate = closest_source.x;
-                antBot.targetYCoordinate = closest_source.y;
-                antBot.targetDirection = closest_source.isXDirection;
+                return first.estimated_time.CompareTo(second.estimated_time);
+            });
+
+            FreeCommandsWithExtendedOccupation(antBot);
+            foreach (var target in targets)
+            {
+                var closest_source = target.source;
+                var path = WHCAStarBuildPath(antBot, closest_source, actions_on_load);
+                if (path.doesExist)
+                {
+                    addPath(antBot, path.path);
+                    antBot.targetXCoordinate = closest_source.x;
+                    antBot.targetYCoordinate = closest_source.y;
+                    antBot.targetDirection = closest_source.isXDirection;
+                    break;
+                }
             }
         }
 
@@ -269,7 +290,7 @@ namespace ControlModel
             AntBot antBot = commandList.antState;
 
             if (commandList.commands.Count == 0 || 
-                commandList.commands[commandList.commands.Count-1].GetType() != typeof(AntBotWait))
+                commandList.commands[commandList.commands.Count-1].Ev.GetType() != typeof(AntBotWait))
             {
                 // also we could try rotate (meaningless if we rotated before or waited to move in one of the directions)
                 var for_rotate = commandList.Clone();
@@ -311,26 +332,30 @@ namespace ControlModel
                         yield return commands_copy;
                     }
                 }
-                for (int move_on_dist = 1; move_on_dist < max_distance; ++move_on_dist)
+                if (commandList.commands.Count == 0 ||
+                    commandList.commands[commandList.commands.Count - 1].Ev.GetType() != typeof(AntBotStop))
                 {
-                    var commands_copy = commandList.Clone();
-                    if (commands_copy.AddCommand(new AntBotAccelerate(antBot, direction), false) &&
-                        commands_copy.AddCommand(new AntBotMove(antBot, move_on_dist), false) &&
-                        commands_copy.AddCommand(new AntBotStop(antBot, false), false))
+                    for (int move_on_dist = 1; move_on_dist < max_distance; ++move_on_dist)
                     {
-                        yield return commands_copy;
-                        var for_rotate = commands_copy.Clone();
-                        if (for_rotate.AddCommand(new AntBotRotate(antBot), false) &&
-                            for_rotate.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false))
+                        var commands_copy = commandList.Clone();
+                        if (commands_copy.AddCommand(new AntBotAccelerate(antBot, direction), false) &&
+                            commands_copy.AddCommand(new AntBotMove(antBot, move_on_dist), false) &&
+                            commands_copy.AddCommand(new AntBotStop(antBot, false), false))
                         {
-                            yield return for_rotate;
+                            yield return commands_copy;
+                            var for_rotate = commands_copy.Clone();
+                            if (for_rotate.AddCommand(new AntBotRotate(antBot), false) &&
+                                for_rotate.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false))
+                            {
+                                yield return for_rotate;
+                            }
                         }
-                    }
-                    else
-                    {
-                        // first moment when we couldn't move on dist probably means that we're stuck
-                        // of course it's not always so, but it's a simplification
-                        break;
+                        else
+                        {
+                            // first moment when we couldn't move on dist probably means that we're stuck
+                            // of course it's not always so, but it's a simplification
+                            break;
+                        }
                     }
                 }
             }
@@ -347,35 +372,6 @@ namespace ControlModel
             {
                 return comparison(x, y);
             }
-        }
-
-        private void PrintGraphState(Dictionary<(int x, int y, bool isXDirection), TimeSpan> cost_so_far)
-        {
-            Console.Write("With X coordination: \n");
-            for (int y = 0; y < sklad.skladLayout.Count; y++)
-            {
-                for (int x = 0; x < sklad.skladLayout[y].Count; x++)
-                {
-                    if (!cost_so_far.ContainsKey((x, y, true)))
-                        Console.Write(String.Format("{0,7}", "Inf"));
-                    else
-                        Console.Write(String.Format("{0,7:0.00}", cost_so_far[(x, y, true)].TotalSeconds));
-                }
-                Console.WriteLine();
-            }
-            Console.Write("With Y coordination: \n");
-            for (int y = 0; y < sklad.skladLayout.Count; y++)
-            {
-                for (int x = 0; x < sklad.skladLayout[y].Count; x++)
-                {
-                    if (!cost_so_far.ContainsKey((x, y, false)))
-                        Console.Write(String.Format("{0,7}", "Inf"));
-                    else
-                        Console.Write(String.Format("{0,7:0.00}", cost_so_far[(x, y, false)].TotalSeconds));
-                }
-                Console.WriteLine();
-            }
-
         }
 
         private (bool doesExist, CommandList path) WHCAStarBuildPath(AntBot antBot, (int x, int y, bool isXDirection) goal, List<AntBotAbstractEvent> actions_on_goal)
@@ -398,10 +394,9 @@ namespace ControlModel
 
             // this very time until we try to consider reservations. Then we don't care (and don't reserve)
             TimeSpan cooperate_until = skladWrapper.updatedTime + WINDOW_COOPERATE;
-            CommandList current = new CommandList(antBot);
             while (frontier.Count > 0)
             {
-                current = frontier.Min.cList;
+                CommandList current = frontier.Min.cList;
                 frontier.Remove(frontier.Min);
 
                 Console.WriteLine(String.Format("{0:0} {1:0} {2,1} {3:0.00}", current.antState.xCord, current.antState.yCord, current.antState.isXDirection, current.lastTime.TotalSeconds));
@@ -419,13 +414,14 @@ namespace ControlModel
                     // --! state -> we can use this Shit just in case...
                     // finally WE WILL HAVE TO PUT x, y, dir as final in antState!!!
                     // ALSO WE HAVE TO PUT cost_so_far[goal] TO THIS PARTICULAR lastTime
-                    TimeSpan last_time = current.lastTime;
+                    
                     (int x, int y, bool isXDirection) finish_point = current.antState.GetCurrentPoint();
-                    last_time += TimeSpan.FromSeconds(EstimateTimeToMoveFunc(goal, finish_point));
+                    TimeSpan last_time = current.lastTime + TimeSpan.FromSeconds(EstimateTimeToMoveFunc(goal, finish_point));
                     if (!cost_so_far.ContainsKey(goal) || last_time < cost_so_far[goal])
                     {
                         cost_so_far[goal] = last_time;
                         came_from[finish_point] = current;
+                        came_from[goal] = current;
                     }
                     current.antState.xCoordinate = goal.x;
                     current.antState.yCoordinate = goal.y;
@@ -442,36 +438,42 @@ namespace ControlModel
                     if (!cost_so_far.ContainsKey(finish_point) || last_time < cost_so_far[finish_point])
                     {
                         cost_so_far[finish_point] = last_time;
-                        double priority = last_time.TotalSeconds + antBot.EstimateTimeToMoveFunc(goal, finish_point);
+                        double priority = last_time.TotalSeconds + EstimateTimeToMoveFunc(goal, finish_point);
                         frontier.Add((commandList, priority));
                         came_from[finish_point] = commandList;
                     }
                 }
 
-                Console.Write(String.Format("Number neighbours investigated {0}\n", number_commands));
-                PrintGraphState(cost_so_far);
-                foreach (var el in frontier) {
-                    Console.Write(String.Format("{0:0.00} ", el.priority));
-                }
-                Console.WriteLine();
+                // Console.Write(String.Format("Number neighbours investigated {0}\n", number_commands));
+                // PrintGraphState(cost_so_far);
+                // foreach (var el in frontier) {
+                //    Console.Write(String.Format("{0:0.00} ", el.priority));
+                // }
+                // Console.WriteLine();
 
             }
             // 1. first case : we didn't reach the goal => stand still (in the cycle we'll have to reassighn commands)
             // 2. second case : reached the goal within window => we have to count + reserve escape path
             // 3. third case : path found yet goal was reached out of reservation => simply assighn commands
-            if (current.antState.xCord == goal.x && current.antState.yCord == goal.y && 
-                current.antState.isXDirection == goal.isXDirection)
+            PrintGraphState(cost_so_far);
+            if (!came_from.ContainsKey(goal))
             {
-                if (cost_so_far[current.antState.GetCurrentPoint()] > cooperate_until)
+                return (false, null);
+            }
+            CommandList best_commands = came_from[goal];
+            if (best_commands.antState.xCord == goal.x && best_commands.antState.yCord == goal.y &&
+                best_commands.antState.isXDirection == goal.isXDirection)
+            {
+                if (cost_so_far[best_commands.antState.GetCurrentPoint()] > cooperate_until)
                 {
                     // 3
-                    return (true, current);
+                    return (true, best_commands);
                 }
                 else
                 {
                     // 2
-                    var path_to_free = WHCAStarBuildEscapePath(current.antState, TimeSpan.FromSeconds(
-                        Math.Max(cooperate_until.TotalSeconds, current.lastTime.TotalSeconds+3)));
+                    var path_to_free = WHCAStarBuildEscapePath(best_commands.antState, TimeSpan.FromSeconds(
+                        Math.Max(cooperate_until.TotalSeconds, best_commands.lastTime.TotalSeconds+3)));
                     if (path_to_free.doesExist)
                     {
                         // --!
@@ -546,17 +548,17 @@ namespace ControlModel
         {
             Queue watched_points = new Queue();
             watched_points.Enqueue(start_point);
-            map[start_point.y, start_point.y, Convert.ToInt32(start_point.isXDirection)] = TimeSpan.Zero;
+            map[start_point.y, start_point.x, Convert.ToInt32(start_point.isXDirection)] = TimeSpan.Zero;
             while(watched_points.Count != 0)
             {
                 var point = ((int x, int y, bool isXDirection)) watched_points.Dequeue();
-                TimeSpan current_best = map[point.x, point.y, Convert.ToInt32(start_point.isXDirection)];
+                TimeSpan current_best = map[point.y, point.x, Convert.ToInt32(point.isXDirection)];
                 foreach (var neighbour in GetNeighbours(point))
                 {
-                    TimeSpan next_best = current_best + neighbour.action_time;
-                    if (map[neighbour.x, neighbour.y, Convert.ToInt32(neighbour.isXDirection)] > next_best)
+                    var next_best = current_best + neighbour.action_time;
+                    if (map[neighbour.y, neighbour.x, Convert.ToInt32(neighbour.isXDirection)] > next_best)
                     {
-                        map[neighbour.x, neighbour.y, Convert.ToInt32(neighbour.isXDirection)] = next_best;
+                        map[neighbour.y, neighbour.x, Convert.ToInt32(neighbour.isXDirection)] = next_best;
                         watched_points.Enqueue((neighbour.x, neighbour.y, neighbour.isXDirection));
                     }
                 }
@@ -571,16 +573,19 @@ namespace ControlModel
             foreach (var source in sklad.source)
             {
                 opimalPathEstimation.Add(source, new TimeSpan[skladHeight, skladWidth, 2]);
+                ArrayExtensions.Fill(opimalPathEstimation[source], TimeSpan.MaxValue);
                 CountPathesFromPoint(source, opimalPathEstimation[source]);
             }
             foreach (var source in sklad.target)
             {
                 opimalPathEstimation.Add(source, new TimeSpan[skladHeight, skladWidth, 2]);
+                ArrayExtensions.Fill(opimalPathEstimation[source], TimeSpan.MaxValue);
                 CountPathesFromPoint(source, opimalPathEstimation[source]);
             }
             foreach (var source in sklad.charge)
             {
                 opimalPathEstimation.Add(source, new TimeSpan[skladHeight, skladWidth, 2]);
+                ArrayExtensions.Fill(opimalPathEstimation[source], TimeSpan.MaxValue);
                 CountPathesFromPoint(source, opimalPathEstimation[source]);
             }
         }
@@ -596,6 +601,66 @@ namespace ControlModel
                 Convert.ToInt32((point_1.x != point_2.x) && (point_1.y != point_2.y))) * sklad.skladConfig.unitRotateTime;
         }
 
+        private void PrintEstimationMap()
+        {
+            Console.WriteLine("Printing estimated shortest pathes to all posible targets");
+            foreach (var pair in opimalPathEstimation)
+            {
+                Console.WriteLine("Printing estimated shortest pathes to source " + $"{pair.Key.x} {pair.Key.y} {pair.Key.isXDirection}");
+                for (int y = 0; y < skladHeight; ++y )
+                {
+                    for (int x = 0; x < skladWidth; ++x)
+                    {
+                        if (pair.Value[y, x, 0] == TimeSpan.MaxValue)
+                        {
+                            Console.Write("Inf/");
+                        }
+                        else
+                        {
+                            Console.Write(String.Format("{0,3:0.0}/", pair.Value[y, x, 0].TotalSeconds));
+                        }
+                        if (pair.Value[y, x, 1] == TimeSpan.MaxValue)
+                        {
+                            Console.Write("Inf  ");
+                        }
+                        else
+                        {
+                            Console.Write(String.Format("{0,3:0.0}  ", pair.Value[y, x, 1].TotalSeconds));
+                        }
+                    }
+                    Console.WriteLine();
+                }
+            }
+        }
+
+        private void PrintGraphState(Dictionary<(int x, int y, bool isXDirection), TimeSpan> cost_so_far)
+        {
+            Console.Write("With X coordination: \n");
+            for (int y = 0; y < sklad.skladLayout.Count; y++)
+            {
+                for (int x = 0; x < sklad.skladLayout[y].Count; x++)
+                {
+                    if (!cost_so_far.ContainsKey((x, y, true)))
+                        Console.Write(String.Format("{0,7}", "Inf"));
+                    else
+                        Console.Write(String.Format("{0,7:0.00}", cost_so_far[(x, y, true)].TotalSeconds));
+                }
+                Console.WriteLine();
+            }
+            Console.Write("With Y coordination: \n");
+            for (int y = 0; y < sklad.skladLayout.Count; y++)
+            {
+                for (int x = 0; x < sklad.skladLayout[y].Count; x++)
+                {
+                    if (!cost_so_far.ContainsKey((x, y, false)))
+                        Console.Write(String.Format("{0,7}", "Inf"));
+                    else
+                        Console.Write(String.Format("{0,7:0.00}", cost_so_far[(x, y, false)].TotalSeconds));
+                }
+                Console.WriteLine();
+            }
+
+        }
 
     }
 }

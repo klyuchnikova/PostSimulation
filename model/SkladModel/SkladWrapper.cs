@@ -18,15 +18,11 @@ namespace SkladModel
         {
             return eventList.Count == 0;
         }
-
-
-
         public void Debug(string info)
         {
             if (isDebug)
                 Console.WriteLine(info);
         }
-
 
         public void AddLogger()
         {
@@ -97,14 +93,10 @@ namespace SkladModel
             SkladLogger logger = (SkladLogger)objects.First(x => x is SkladLogger);
             logger.SaveLog(fileName);
         }
-
-
         public static AntBot cloneAnt(AntBot antBot)
         {
             return antBot.ShalowClone();
         }
-
-
 
         public void Move(AntBot antBot, Direction direction, int numCoord = 0, double time = 0)
         {
@@ -136,8 +128,6 @@ namespace SkladModel
             Debug($"End Macro - Move {direction}");
 
         }
-
-
 
         public int getFreePath(AntBot antBot, Direction direction, TimeSpan actionTime)
         {
@@ -221,9 +211,6 @@ namespace SkladModel
                 {
                     throw new CheckStateException();
                 }
-
-
-               
             }
         }
     }

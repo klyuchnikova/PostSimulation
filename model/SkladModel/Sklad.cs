@@ -11,12 +11,13 @@ using ExtendedXmlSerializer.Configuration;
 
 namespace SkladModel
 {
-
-
     public class Sklad : AbstractObject
     {
 
         public Dictionary<int, Dictionary<int, int>> skladLayout = new Dictionary<int, Dictionary<int, int>>();
+        
+        // dictionary for possible goals for robots where value is the number of robots who are currently considering this square a target
+        public Dictionary<int, Dictionary<int, int>> skladTargeted = new Dictionary<int, Dictionary<int, int>>();
 
         public List<(int x, int y, bool direction)> source = new List<(int x, int y, bool direction)>();
         public List<(int x, int y, bool direction)> target = new List<(int x, int y, bool direction)>();
@@ -32,9 +33,7 @@ namespace SkladModel
         public SquaresIsBusy squaresIsBusy;
 
         public Sklad()
-        {
-
-        }
+        {}
 
         public Sklad(SkladConfig skladConfig)
         {
@@ -42,7 +41,6 @@ namespace SkladModel
             int counter = 0;
             foreach (string line in System.IO.File.ReadLines(skladConfig.skladLayout))
             {
-
                 skladLayout.Add(counter, new Dictionary<int, int>());
                 string[] numbers = line.Split(',');
                 for (int i = 0; i < numbers.Length; i++)
@@ -72,12 +70,40 @@ namespace SkladModel
                 }
                 Console.WriteLine();
             }
-
+            
+            foreach (var point_ in charge)
+            {
+                if (!skladTargeted.ContainsKey(point_.x) {
+                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
+                }
+                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                {
+                    skladTargeted[point_.x].Add(point_.y, 0);
+                }
+            }
+            foreach (var point_ in source)
+            {
+                if (!skladTargeted.ContainsKey(point_.x) {
+                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
+                }
+                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                {
+                    skladTargeted[point_.x].Add(point_.y, 0);
+                }
+            }
+            foreach (var point_ in target)
+            {
+                if (!skladTargeted.ContainsKey(point_.x) {
+                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
+                }
+                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                {
+                    skladTargeted[point_.x].Add(point_.y, 0);
+                }
+            }
 
             squaresIsBusy = new SquaresIsBusy(skladLayout, uid);
-
         }
-
 
         public override (TimeSpan, AbstractEvent) getNearestEvent(List<AbstractObject> objects)
         {
@@ -89,7 +115,4 @@ namespace SkladModel
             return;
         }
     }
-
-
-
 }

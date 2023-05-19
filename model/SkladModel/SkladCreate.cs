@@ -29,7 +29,4 @@ namespace SkladModel
             Console.WriteLine($"sklad {sklad.uid} created {sklad.lastUpdated}");
         }
     }
-
-
-
 }
