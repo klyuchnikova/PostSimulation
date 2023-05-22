@@ -261,11 +261,24 @@ class Animator:
                 self.map_controller.map_classes[row_id].append(tile_type_id)
                 
         folder_name = "tile_type_pictures"
+        
+        """
         type_to_path = {0 : f"{folder_name}/NULL_CELL.png", 
                         1 : f"{folder_name}/BLANK.png", 
                         2 : f"{folder_name}/DROPBOX.png", 
                         3 : f"{folder_name}/SHELF_CELL.png", 
                         4 : f"{folder_name}/CHARGE.png"}
+        """
+        
+        type_to_path = {0 : f"{folder_name}/NULL_CELL.png", 
+                        1 : f"{folder_name}/BLANK.png", 
+                        2 : f"{folder_name}/DROPBOX.png", 
+                        3 : f"{folder_name}/SHELF_CELL.png", 
+                        4 : f"{folder_name}/CHARGE.png",
+                        5 : f"{folder_name}/DROPBOX.png",
+                        6 : f"{folder_name}/SHELF_CELL.png",
+                        7 : f"{folder_name}/CHARGE.png",}        
+        
         self.map_controller.map_pictures_pathes = [[type_to_path[self.map_controller.map_classes[row_id][col_id]] 
                                                     for col_id in range(len(self.map_controller.map_classes[row_id]))] 
                                                    for row_id in range(len(self.map_controller.map_classes))]

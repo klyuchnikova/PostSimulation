@@ -39,7 +39,6 @@ namespace SkladModel
                 TimeSpan endInterval = startInterval + TimeSpan.FromSeconds(wait / antBot.sklad.skladConfig.unitSpeed);
                 if (!antBot.CheckRoom(coord.x, coord.y, startInterval, endInterval))
                 {
-                    antBot.CheckRoom(coord.x, coord.y, startInterval, endInterval);
                     return false;
                 }
             }

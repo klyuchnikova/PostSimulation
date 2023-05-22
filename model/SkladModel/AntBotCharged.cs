@@ -33,6 +33,7 @@ namespace SkladModel
             antBot.state = AntBotState.Wait;
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
             antBot.isFree = (antBot.commandList.commands.Count == 0);
+            --antBot.sklad.skladTargeted[antBot.yCord][antBot.xCord];
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Charged");

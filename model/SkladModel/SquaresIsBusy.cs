@@ -117,7 +117,33 @@ namespace SkladModel
             Console.WriteLine();
         }
 
-
+        public void PrintReserves(Dictionary<int, Dictionary<int, int>> skladLayout)
+        {
+            int skladWidth = squareIsBusy.Count;
+            int skladHeight = squareIsBusy[0].Count;
+            for (int y = 0; y < skladHeight; ++y)
+            {
+                for (int x = 0; x < skladWidth; ++x)
+                {
+                    if (squareIsBusy[x][y].Count == 0)
+                    {
+                        Console.Write(String.Format("{0,7}", "   -   "));
+                    } else if (skladLayout[y][x] == 0)
+                    {
+                        Console.Write(String.Format("{0,7}", "---X---"));
+                    } else
+                    {
+                        foreach (var sq in squareIsBusy[x][y])
+                        {
+                            Console.Write(String.Format("{0,2:0.0}-{1,2:0.0}|", sq.Key.TotalSeconds, sq.Value.endTime.TotalSeconds));
+                        }
+                        Console.Write(" ");
+                    }
+                }
+                Console.WriteLine();
+            }
+            Console.WriteLine();
+        }
     }
 
 

@@ -20,6 +20,6 @@
   <unitChargeValue>7200</unitChargeValue>
   <unitCount>1</unitCount>
   <skladLayout>..\..\..\..\..\W3.csv</skladLayout>
-  <antBotLayout>..\..\..\..\..\wms-robots.csv</antBotLayout>
+  <antBotLayout>..\..\..\..\..\wms-robots_1.csv</antBotLayout>
   <incomeLayout>..\..\..\..\..\wms-income-1k.txt</incomeLayout>
 </SkladConfig>

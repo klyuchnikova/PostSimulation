@@ -38,7 +38,6 @@ namespace SkladModel
         Left = 2,
         Right = 3
     }
-
     public class CommandList
     {
         public CommandList() { }

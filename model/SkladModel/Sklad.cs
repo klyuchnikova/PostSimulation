@@ -73,32 +73,34 @@ namespace SkladModel
             
             foreach (var point_ in charge)
             {
-                if (!skladTargeted.ContainsKey(point_.x) {
-                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
+                if (!skladTargeted.ContainsKey(point_.y)) {
+                    skladTargeted.Add(point_.y, new Dictionary<int, int>());
                 }
-                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                if (!skladTargeted[point_.y].ContainsKey(point_.x))
                 {
-                    skladTargeted[point_.x].Add(point_.y, 0);
+                    skladTargeted[point_.y].Add(point_.x, 0);
                 }
             }
             foreach (var point_ in source)
             {
-                if (!skladTargeted.ContainsKey(point_.x) {
-                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
-                }
-                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                if (!skladTargeted.ContainsKey(point_.y))
                 {
-                    skladTargeted[point_.x].Add(point_.y, 0);
+                    skladTargeted.Add(point_.y, new Dictionary<int, int>());
+                }
+                if (!skladTargeted[point_.y].ContainsKey(point_.x))
+                {
+                    skladTargeted[point_.y].Add(point_.x, 0);
                 }
             }
             foreach (var point_ in target)
             {
-                if (!skladTargeted.ContainsKey(point_.x) {
-                    skladTargeted.Add(point_.x, new Dictionary<int, int>());
-                }
-                if (!skladTargeted[point_.x].ContainsKey(point_.y))
+                if (!skladTargeted.ContainsKey(point_.y))
                 {
-                    skladTargeted[point_.x].Add(point_.y, 0);
+                    skladTargeted.Add(point_.y, new Dictionary<int, int>());
+                }
+                if (!skladTargeted[point_.y].ContainsKey(point_.x))
+                {
+                    skladTargeted[point_.y].Add(point_.x, 0);
                 }
             }
 
