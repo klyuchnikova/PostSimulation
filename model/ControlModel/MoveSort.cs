@@ -83,9 +83,9 @@ namespace ControlModel
                 if (timeProgress < skladWrapper.updatedTime)
                 {
                     Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}  {skladWrapper.GetSklad().deliveryCount}");
-                    sklad.squaresIsBusy.PrintReserves(sklad.skladLayout);
+                    // sklad.squaresIsBusy.PrintReserves(sklad.skladLayout);
                     PrintSklad();
-                    timeProgress += TimeSpan.FromSeconds(2);
+                    timeProgress += TimeSpan.FromSeconds(10);
                 }
                 if (skladWrapper.updatedTime > maxModelTime)
                 {
@@ -103,7 +103,7 @@ namespace ControlModel
 
         private void MakeCommands()
         {
-            skladWrapper.GetAvailableAnts().ForEach(ant =>
+            skladWrapper.GetAvailableAnts(skladWrapper.updatedTime).ForEach(ant =>
             {
                 ant.time_before_recount = skladWrapper.updatedTime + WINDOW_RECALCULATE;
 
@@ -127,7 +127,8 @@ namespace ControlModel
                 {
                     TryRunToFreePoint(ant);
                 }
-                ant.PrintCommands();
+                ant.isFree = (ant.commandList.commands.Count == 0);
+                // ant.PrintCommands();
             });
         }
 
@@ -165,7 +166,7 @@ namespace ControlModel
             // ant Bot is ONE HUNDRED PERCENT on the edge of starting a new task
             antbot.CleanReservation();
             antbot.commandList = new CommandList(antbot);
-            antbot.isFree = true;
+            // antbot.isFree = true;
         }
 
         private void RunToDrop(AntBot antBot)
@@ -241,6 +242,7 @@ namespace ControlModel
             double count_rob_coef = 5;
             foreach (var target_point in antBot.sklad.source)
             {
+                // PrintEstimationMap(target_point);
                 targets.Add((target_point, 
                     antBot.sklad.skladTargeted[target_point.y][target_point.x]*count_rob_coef + 
                     EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
@@ -378,6 +380,7 @@ namespace ControlModel
         private (bool doesExist, CommandList path) WHCAStarBuildPath(AntBot antBot, (int x, int y, bool isXDirection) goal, List<AntBotAbstractEvent> actions_on_goal)
         {
             // this very time until we try to consider reservations. Then we don't care (and don't reserve)
+            Console.WriteLine($"WHCAStarBuildPath ({antBot.xCord}, {antBot.yCord}) -> ({goal.x}, {goal.y})");
             TimeSpan cooperate_until = skladWrapper.updatedTime + WINDOW_COOPERATE;
             CommandList best_commands = WHCAStarBuildPath(antBot, goal, actions_on_goal, cooperate_until);
             if (best_commands.antState.xCord == goal.x &&
@@ -533,7 +536,7 @@ namespace ControlModel
                 return (true, new CommandList(antBot));
             }
             CommandList path = WHCAStarBuildPath(antBot, center, new List<AntBotAbstractEvent>(), cooperate_until);
-            return (path == null, path);
+            return (path != null, path);
         }
 
         public FibonacciHeap<double, CommandList> graph;
@@ -643,6 +646,35 @@ namespace ControlModel
                 Convert.ToInt32((point_1.x != point_2.x) && (point_1.y != point_2.y))) * sklad.skladConfig.unitRotateTime;
         }
 
+        private void PrintEstimationMap((int x, int y, bool isXDirection) target_point)
+        {
+            Console.WriteLine("Printing estimated shortest pathes to source " + $"{target_point.x} {target_point.y} {target_point.isXDirection}");
+            var map = optimalPathEstimation[target_point];
+            for (int y = 0; y < skladHeight; ++y)
+            {
+                for (int x = 0; x < skladWidth; ++x)
+                {
+                    if (map[y, x, 0] == TimeSpan.MaxValue)
+                    {
+                        Console.Write("Inf/");
+                    }
+                    else
+                    {
+                        Console.Write(String.Format("{0,3:0.0}/", map[y, x, 0].TotalSeconds));
+                    }
+                    if (map[y, x, 1] == TimeSpan.MaxValue)
+                    {
+                        Console.Write("Inf  ");
+                    }
+                    else
+                    {
+                        Console.Write(String.Format("{0,3:0.0}  ", map[y, x, 1].TotalSeconds));
+                    }
+                }
+                Console.WriteLine();
+            }
+        }
+
         private void PrintEstimationMap()
         {
             Console.WriteLine("Printing estimated shortest pathes to all posible targets");
@@ -711,6 +743,7 @@ namespace ControlModel
             foreach (var bot in skladWrapper.GetAllAnts())
             {
                 bot_positions[bot.yCord, bot.xCord] = bot.GetDirection();
+                bot.PrintCommands();
             }
 
             for (int y = 0; y < skladHeight; ++y)

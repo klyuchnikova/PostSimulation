@@ -31,6 +31,15 @@ namespace SkladModel
             antBot.ReserveRoom(x, y, getStartTime(), getEndTime());
         }
 
+        private void AssignTarget(AntBot ant)
+        {
+            Random rnd = new Random();
+            var target = ant.sklad.target[rnd.Next(0, ant.sklad.target.Count - 1)];
+            ant.targetXCoordinate = target.x;
+            ant.targetYCoordinate = target.y;
+            ant.targetDirection = target.direction;
+        }
+
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
             antBot.xCoordinate = antBot.xCord;
@@ -40,6 +49,7 @@ namespace SkladModel
             antBot.charge -= antBot.sklad.skladConfig.unitLoadEnergy;
             antBot.state = AntBotState.Loading;
             antBot.isLoaded = true;
+            AssignTarget(antBot);
             antBot.RemoveFirstCommand(timeSpan);
             antBot.waitTime = getEndTime();
             antBot.isFree = (antBot.commandList.commands.Count == 0);

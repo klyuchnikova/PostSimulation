@@ -43,6 +43,7 @@ namespace SkladModel
             antBot.isLoaded = false;
             antBot.RemoveFirstCommand(timeSpan);
             antBot.isFree = false;
+            antBot.targetYCoordinate = antBot.targetXCoordinate = -1;
             antBot.waitTime = getEndTime();
             if (antBot.skladLogger != null)
             {

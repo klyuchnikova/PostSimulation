@@ -90,7 +90,6 @@ namespace SkladModel
         
         public bool AddCommand(AntBotAbstractEvent abstractEvent, bool isNeedReserve = true)
         {
-
             if (commands.Count == 0)
             {
                 antState = antBot.ShalowClone();
@@ -136,8 +135,6 @@ namespace SkladModel
             abstractEvent.antBot = antBot;
             return true;
         }
-
-
         public List<(TimeSpan Key, AntBotAbstractEvent Ev)> commands = new List<(TimeSpan Key, AntBotAbstractEvent Ev)>();
     }
 
@@ -159,11 +156,11 @@ namespace SkladModel
         public int targetXCoordinate = -1;
         public int targetYCoordinate = -1;
         public bool targetDirection;
-        public TimeSpan time_before_recount;
-        public TimeSpan waitTime;
         // this variable states the approximate time since start of simulation
         // when the commands should be recalculated (recalculations will only happen after command is finished)
-        public TimeSpan recalculateHorizon = TimeSpan.Zero;
+        public TimeSpan time_before_recount = TimeSpan.Zero;
+        public TimeSpan waitTime;
+        
         public AntBotState state;
         public Sklad sklad;
         public SkladLogger skladLogger;
@@ -195,7 +192,7 @@ namespace SkladModel
 
         public void PrintCommands()
         {
-            Console.WriteLine($"Bot at ({xCord}, {yCord}) u{uid} got commands:");
+            Console.WriteLine($"upd {String.Format("{0,2:0.0}", lastUpdated.TotalSeconds)} - rec {String.Format("{0,2:0.0}", time_before_recount.TotalSeconds)}: Bot at ({xCord}, {yCord}) u{uid} got commands:");
             foreach (var command in commandList.commands)
             {
                 Console.Write($"{String.Format("{0,2:0.0}", command.Key.TotalSeconds)} {command.Ev.GetType()} -> ");

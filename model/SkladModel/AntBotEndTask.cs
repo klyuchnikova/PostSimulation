@@ -50,7 +50,6 @@ namespace SkladModel
 
             if (!antBot.hasNoTarget()) {
                 --antBot.sklad.skladTargeted[antBot.targetYCoordinate][antBot.targetXCoordinate];
-                antBot.targetYCoordinate = antBot.targetXCoordinate = -1;
             }
 
             if (antBot.skladLogger != null)

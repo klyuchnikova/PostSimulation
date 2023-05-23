@@ -82,11 +82,17 @@ namespace SkladModel
             return GetAllAnts().FindAll(x => x.isFree);
         }
 
-        public List<AntBot> GetAvailableAnts()
+        public List<AntBot> GetAvailableAnts(TimeSpan timeSpan)
         {
             // returns all bots which need command calculation
+
+            foreach (var ant in GetAllAnts())
+            {
+                //Console.WriteLine($"{ant.xCord} {ant.yCord} : free={ant.isFree}, rec={String.Format("{0,2:0.0}", ant.time_before_recount.TotalSeconds)} ? ts={String.Format("{0,2:0.0}", timeSpan.TotalSeconds)} = {(ant.time_before_recount <= timeSpan)}");
+            }
+
             return GetAllAnts().FindAll(ant =>
-                ant.isFree || (ant.recalculateHorizon >= ant.lastUpdated)
+                ant.isFree || (ant.time_before_recount <= timeSpan)
             );
         }
 
