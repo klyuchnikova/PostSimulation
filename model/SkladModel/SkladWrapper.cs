@@ -11,12 +11,22 @@ namespace SkladModel
     {
         public bool isDebug = false;
         public bool isNeedCheck = true;
+        private int total_init_events = 0;
         SkladConfig skladConfig;
         Func<CommandList, double> metricFunc;
 
         public bool isEventCountEmpty()
         {
             return eventList.Count == 0;
+        }
+
+        public void RunAllInitEvents()
+        {
+            while (total_init_events > 0)
+            {
+                Next();
+                --total_init_events;
+            }
         }
         public void Debug(string info)
         {
@@ -27,11 +37,13 @@ namespace SkladModel
         public void AddLogger()
         {
             AddEvent(TimeSpan.Zero, new SkladLoggerCreate());
+            ++total_init_events;
         }
 
         public void AddSklad(Func<CommandList, double> metricFunc = null)
         {
             AddEvent(TimeSpan.Zero, new SkladCreate(skladConfig, metricFunc));
+            ++total_init_events;
         }
 
         public void AddAnts(int numRobots)
@@ -45,6 +57,7 @@ namespace SkladModel
                 if (count == numRobots)
                     break;
             }
+            total_init_events += count;
         }
 
         public SkladWrapper(string fileSkladConfig, bool isDebug = false)

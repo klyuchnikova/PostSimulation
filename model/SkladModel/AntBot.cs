@@ -65,7 +65,7 @@ namespace SkladModel
         }
 
         public CommandList(AntBot antBot) {
-            uid = Guid.NewGuid().ToString();
+            //uid = Guid.NewGuid().ToString();
             this.antBot = antBot;
             antState = antBot.ShalowClone();
             antState.commandList = new CommandList();
@@ -157,7 +157,7 @@ namespace SkladModel
         public bool isLoaded;
         public bool isFree;
         public int targetXCoordinate = -1;
-        public int targetYCoordinate;
+        public int targetYCoordinate = -1;
         public bool targetDirection;
         public TimeSpan time_before_recount;
         public TimeSpan waitTime;
@@ -175,7 +175,7 @@ namespace SkladModel
         public bool isClone = false;
 
         [XmlIgnore]
-        public List<(int x, int y, TimeSpan from, TimeSpan to)> reserved = new List<(int x, int y, TimeSpan from, TimeSpan to)>();
+        public Queue<(int x, int y, TimeSpan from, TimeSpan to)> reserved = new Queue<(int x, int y, TimeSpan from, TimeSpan to)>();
 
         [XmlIgnore]
         internal List<AbstractObject> objects;
@@ -185,12 +185,22 @@ namespace SkladModel
 
         public bool hasNoTarget()
         {
-            return targetXCoordinate != -1;
+            return targetXCoordinate == -1;
         }
 
         public (int x, int y, bool isXDirection) GetCurrentPoint()
         {
             return (xCord, yCord, isXDirection);
+        }
+
+        public void PrintCommands()
+        {
+            Console.WriteLine($"Bot at ({xCord}, {yCord}) u{uid} got commands:");
+            foreach (var command in commandList.commands)
+            {
+                Console.Write($"{String.Format("{0,2:0.0}", command.Key.TotalSeconds)} {command.Ev.GetType()} -> ");
+            }
+            Console.WriteLine();
         }
 
         private int nextShift(double speed)
@@ -224,6 +234,21 @@ namespace SkladModel
         public double EstimateTimeToMoveFunc((int x, int y, bool isXDirection) point)
         {
             return EstimateTimeToMoveFunc(point, GetCurrentPoint());
+        }
+
+        public int GetDirection()
+        {
+            if (xSpeed < 0)
+                return 3;
+            if (xSpeed > 0)
+                return 1;
+            if (ySpeed < 0)
+                return 2;
+            if (ySpeed > 0)
+                return 4;
+            if (isXDirection)
+                return 5;
+            return 6;
         }
 
         public (int x, int y) getShift(int shift)
@@ -341,8 +366,11 @@ namespace SkladModel
 
         public void CleanReservation()
         {
-            reserved.ForEach(res => sklad.squaresIsBusy.UnReserveRoom(res.x, res.y, res.from));
-            reserved.Clear();
+            while (reserved.Count > 0)
+            {
+                var res = reserved.Dequeue();
+                sklad.squaresIsBusy.UnReserveRoom(res.x, res.y, res.from);
+            }
             commandList.lastTime = lastUpdated;
         }
 
@@ -378,7 +406,7 @@ namespace SkladModel
             }
                 
             sklad.squaresIsBusy.ReserveRoom(x, y, from, to, uid);         
-            reserved.Add((x, y, from, to));
+            reserved.Enqueue((x, y, from, to));
             if (isDebug)
                 Console.WriteLine($"Reserve x:{x}, y:{y} from {from} to {to} uid {uid}");
         }

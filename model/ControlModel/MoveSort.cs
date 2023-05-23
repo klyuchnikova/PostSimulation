@@ -67,22 +67,9 @@ namespace ControlModel
         {
             TimeSpan timeProgress = TimeSpan.Zero;
             DateTime now = DateTime.Now;
-            
-            // first make commands to create Sklad and Logger
-            while (skladWrapper.Next())
-            {
-                if (timeProgress < skladWrapper.updatedTime)
-                {
-                    Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}  {skladWrapper.GetSklad().deliveryCount}");
-                    timeProgress += TimeSpan.FromMinutes(1);
-                    break;
-                }
 
-                if (skladWrapper.updatedTime > maxModelTime)
-                {
-                    break;
-                }
-            }
+            // first make commands to create Sklad and Logger
+            skladWrapper.RunAllInitEvents();
 
             sklad = skladWrapper.GetSklad();
             skladHeight = sklad.skladLayout.Count; 
@@ -90,13 +77,15 @@ namespace ControlModel
             InitoptimalPathEstimation();
             // PrintEstimationMap();
             optimalChargeValue = sklad.skladConfig.unitChargeValue * 0.8;
-
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             do
             {
                 if (timeProgress < skladWrapper.updatedTime)
                 {
                     Console.WriteLine($"{skladWrapper.updatedTime}  {DateTime.Now - now}  {skladWrapper.GetSklad().deliveryCount}");
-                    timeProgress += TimeSpan.FromMinutes(1);
+                    sklad.squaresIsBusy.PrintReserves(sklad.skladLayout);
+                    PrintSklad();
+                    timeProgress += TimeSpan.FromSeconds(2);
                 }
                 if (skladWrapper.updatedTime > maxModelTime)
                 {
@@ -105,11 +94,6 @@ namespace ControlModel
                 else if (skladWrapper.GetSklad().deliveryCount >= 5000)
                 {
                     Console.WriteLine($"Delivery time: {skladWrapper.updatedTime.TotalSeconds}");
-                    break;
-                }
-                else if (skladWrapper.GetAllAnts().Any(x => x.state == AntBotState.UnCharged))
-                {
-                    Console.WriteLine("UNCHARGED"); // --! this check should be moved
                     break;
                 }
 
@@ -143,6 +127,7 @@ namespace ControlModel
                 {
                     TryRunToFreePoint(ant);
                 }
+                ant.PrintCommands();
             });
         }
 
@@ -211,9 +196,12 @@ namespace ControlModel
             var actions_on_load = new List<AntBotAbstractEvent>() { new AntBotLoad(antBot) };
 
             var targets = new List<((int x, int y, bool isXDirection) source, double estimated_time)>();
+            double count_rob_coef = 100;
             foreach (var target_point in antBot.sklad.charge)
             {
-                targets.Add((target_point, EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
+                targets.Add((target_point,
+                    antBot.sklad.skladTargeted[target_point.y][target_point.x] * count_rob_coef +
+                    EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
             };
 
             targets.Sort((first, second) =>
@@ -250,9 +238,12 @@ namespace ControlModel
             var actions_on_load = new List<AntBotAbstractEvent>() {new AntBotLoad(antBot)};
 
             var targets = new List<((int x, int y, bool isXDirection) source, double estimated_time)>();
+            double count_rob_coef = 5;
             foreach (var target_point in antBot.sklad.source)
             {
-                targets.Add((target_point, EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
+                targets.Add((target_point, 
+                    antBot.sklad.skladTargeted[target_point.y][target_point.x]*count_rob_coef + 
+                    EstimateTimeToMoveFunc(target_point, antBot.GetCurrentPoint())));
             };
 
             targets.Sort((first, second) =>
@@ -388,9 +379,37 @@ namespace ControlModel
         {
             // this very time until we try to consider reservations. Then we don't care (and don't reserve)
             TimeSpan cooperate_until = skladWrapper.updatedTime + WINDOW_COOPERATE;
-            return WHCAStarBuildPath(antBot, goal, actions_on_goal, cooperate_until);
+            CommandList best_commands = WHCAStarBuildPath(antBot, goal, actions_on_goal, cooperate_until);
+            if (best_commands.antState.xCord == goal.x &&
+                best_commands.antState.yCord == goal.y &&
+                best_commands.antState.isXDirection == goal.isXDirection)
+            {
+                foreach (var act_on_goal in actions_on_goal)
+                {
+                    best_commands.AddCommand(act_on_goal, false);
+                }
+
+                if (best_commands.lastTime < cooperate_until)
+                {
+                    // 2
+                    var path_to_free = WHCAStarBuildEscapePath(best_commands.antState, TimeSpan.FromSeconds(
+                        Math.Max(cooperate_until.TotalSeconds, best_commands.lastTime.TotalSeconds + 3)));
+                    if (!path_to_free.doesExist) {
+                        return (false, null);
+                    }
+                    
+                    foreach (var t_command in path_to_free.path.commands) {
+                        best_commands.AddCommand(t_command.Ev, false);
+                    }
+                }
+            }
+            if (best_commands != null)
+            {
+                return (true, best_commands);
+            }
+            return (false, null);
         }
-        private (bool doesExist, CommandList path) WHCAStarBuildPath(
+        private CommandList WHCAStarBuildPath(
             AntBot antBot, 
             (int x, int y, bool isXDirection) goal, 
             List<AntBotAbstractEvent> actions_on_goal, 
@@ -402,12 +421,12 @@ namespace ControlModel
 
             if (antBot.lastUpdated >= cooperate_until)
             {
-                return (true, new CommandList(antBot));
+                return new CommandList(antBot);
             }
 
             var frontier = new SortedSet<(CommandList cList, double priority)>(
                 new VerticeComparator<(CommandList cList, double priority)>(
-                    (a, b) => (a.cList.uid == b.cList.uid ? 0 : (a.priority > b.priority ? 1 : -1))
+                    (a, b) => ((a.cList.antState.charge == b.cList.antState.charge) && (a.priority == b.priority) ? 0 : (a.priority > b.priority ? 1 : -1))
                 )
             );
 
@@ -494,41 +513,12 @@ namespace ControlModel
             // PrintGraphState(cost_so_far);
             if (!came_from.ContainsKey(goal))
             {
-                if (best_unreachable != null)
-                {
-                    return (true, best_unreachable);
-                }
-                return (false, null);
+                return best_unreachable;
             }
-
-            CommandList best_commands = came_from[goal];
-            if (best_commands.antState.xCord == goal.x && 
-                best_commands.antState.yCord == goal.y &&
-                best_commands.antState.isXDirection == goal.isXDirection)
+            else
             {
-                foreach (var act_on_goal in actions_on_goal) {
-                    best_commands.AddCommand(act_on_goal, false);
-                }
-
-                if (best_commands.lastTime > cooperate_until)
-                {
-                    // 3
-                    return (true, best_commands);
-                } else {
-                    // 2
-                    var path_to_free = WHCAStarBuildEscapePath(best_commands.antState, TimeSpan.FromSeconds(
-                        Math.Max(cooperate_until.TotalSeconds, best_commands.lastTime.TotalSeconds+3)));
-                    if (path_to_free.doesExist)
-                    {
-                        foreach (var t_command in path_to_free.path.commands)
-                        {
-                            best_commands.AddCommand(t_command.Ev, false);
-                        }
-                        return (true, best_commands);
-                    }
-                }
+                return came_from[goal];
             }
-            return (false, null);
         }
 
         private (bool doesExist, CommandList path) WHCAStarBuildEscapePath(AntBot antBot, TimeSpan cooperate_until)
@@ -542,8 +532,8 @@ namespace ControlModel
             {
                 return (true, new CommandList(antBot));
             }
-
-            return WHCAStarBuildPath(antBot, center, new List<AntBotAbstractEvent>(), cooperate_until);
+            CommandList path = WHCAStarBuildPath(antBot, center, new List<AntBotAbstractEvent>(), cooperate_until);
+            return (path == null, path);
         }
 
         public FibonacciHeap<double, CommandList> graph;
@@ -714,5 +704,78 @@ namespace ControlModel
 
         }
 
+        private void PrintSklad()
+        {
+            var bot_positions = new int[skladHeight, skladWidth];
+
+            foreach (var bot in skladWrapper.GetAllAnts())
+            {
+                bot_positions[bot.yCord, bot.xCord] = bot.GetDirection();
+            }
+
+            for (int y = 0; y < skladHeight; ++y)
+            {
+                for (int x = 0; x < skladWidth; ++x)
+                {
+                    if (sklad.skladLayout[y][x] == 0)
+                    {
+                        Console.Write("-X-");
+                    }
+                    else
+                    {
+                        switch (bot_positions[y, x])
+                        {
+                            case 1:
+                                Console.Write("→");
+                                break;
+                            case 2:
+                                Console.Write("↓");
+                                break;
+                            case 3:
+                                Console.Write("←");
+                                break;
+                            case 4:
+                                Console.Write("↑");
+                                break;
+                            case 5:
+                                Console.Write("↔");
+                                break;
+                            case 6:
+                                Console.Write("↕");
+                                break;
+                            case 0:
+                                Console.Write(" ");
+                                break;
+                        }
+                        switch (sklad.skladLayout[y][x])
+                        {
+                            case 1:
+                                Console.Write("  ");
+                                break;
+                            case 2:
+                                Console.Write("-S");
+                                break;
+                            case 3:
+                                Console.Write("-D");
+                                break;
+                            case 4:
+                                Console.Write("-C");
+                                break;
+                            case 5:
+                                Console.Write("|S");
+                                break;
+                            case 6:
+                                Console.Write("|D");
+                                break;
+                            case 7:
+                                Console.Write("|C");
+                                break;
+                        }
+                    }
+                    Console.Write(" ");
+                }
+                Console.WriteLine();
+            }
+        }
     }
 }

@@ -34,6 +34,25 @@ namespace SkladModel
             antBot.state = AntBotState.Wait;
             antBot.waitTime = TimeSpan.Zero;
             antBot.isFree = (antBot.commandList.commands.Count == 0);
+
+            while (antBot.reserved.Count != 0)
+            {
+                var front_res = antBot.reserved.Peek();
+                if (front_res.to < antBot.lastUpdated)
+                {
+                    antBot.sklad.squaresIsBusy.UnReserveRoom(front_res.x, front_res.y, front_res.from);
+                    antBot.reserved.Dequeue();
+                } else
+                {
+                    break;
+                }
+            }
+
+            if (!antBot.hasNoTarget()) {
+                --antBot.sklad.skladTargeted[antBot.targetYCoordinate][antBot.targetXCoordinate];
+                antBot.targetYCoordinate = antBot.targetXCoordinate = -1;
+            }
+
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "EndTask");

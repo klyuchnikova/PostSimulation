@@ -36,7 +36,5 @@ namespace TestSklad2
             SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
             File.WriteAllBytes(@"..\..\..\..\..\log_unity.xml", SkladWrapper.SerializeXML(logger.logs.ToArray()));
         }
-
-
     }
 }

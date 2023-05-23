@@ -8,333 +8,25 @@
     <ySpeed>0</ySpeed>
     <charge>7200</charge>
     <isLoaded>false</isLoaded>
-    <uid>a3fcbc6d-2a0a-49e2-84fd-05be4273babd</uid>
+    <uid>67859</uid>
     <lastUpdated>2E-07</lastUpdated>
     <state>Wait</state>
     <command>Create AntBot</command>
     <id>0</id>
   </AntStateChange>
   <AntStateChange>
-    <xCoordinate>3</xCoordinate>
+    <xCoordinate>5</xCoordinate>
     <yCoordinate>2</yCoordinate>
     <isXDirection>true</isXDirection>
     <xSpeed>0</xSpeed>
     <ySpeed>0</ySpeed>
     <charge>7200</charge>
     <isLoaded>false</isLoaded>
-    <uid>fba25f5c-b978-4d30-a11a-fa15cec31ada</uid>
+    <uid>56290</uid>
     <lastUpdated>3E-07</lastUpdated>
     <state>Wait</state>
     <command>Create AntBot</command>
     <id>1</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>4</xCoordinate>
-    <yCoordinate>2</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>862bb077-63fc-478c-8b15-9ca03002ab18</uid>
-    <lastUpdated>4E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>2</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>5</xCoordinate>
-    <yCoordinate>2</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>f55f1fb9-e87b-46d4-b522-430b2d287592</uid>
-    <lastUpdated>5E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>3</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>6</xCoordinate>
-    <yCoordinate>2</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>a263fde7-b209-4871-b368-bfee5503d4e2</uid>
-    <lastUpdated>6E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>4</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>7</xCoordinate>
-    <yCoordinate>2</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>a8fc0328-9ecc-47bc-ae83-7d3675f5d324</uid>
-    <lastUpdated>7E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>5</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>2</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>3c10e5de-d728-4d6b-8cf3-a94ec7d6804e</uid>
-    <lastUpdated>8E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>6</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>3</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>dd733c47-3d64-4528-a855-31f42a1b8b9a</uid>
-    <lastUpdated>9E-07</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>7</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>4</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>6e3b9d2b-001f-484e-aae0-825c22ca21ab</uid>
-    <lastUpdated>1E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>8</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>5</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>a8dd234d-132a-418b-a021-4ba4fa0e40b5</uid>
-    <lastUpdated>1.1E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>9</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>6</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>c9eff3c2-7578-49dd-8bf3-07379abc8ebd</uid>
-    <lastUpdated>1.2E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>10</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>7</xCoordinate>
-    <yCoordinate>3</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>342ef0c4-37dc-4b22-b358-71b16abada37</uid>
-    <lastUpdated>1.3E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>11</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>2</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>11665e4f-36b1-4060-88d0-57e645120b0c</uid>
-    <lastUpdated>1.4E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>12</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>3</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>37466de9-a676-46ed-a4aa-692e0b7ca5f5</uid>
-    <lastUpdated>1.5E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>13</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>4</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>fd5d77dd-e946-4f15-a9a1-9007540e7c5c</uid>
-    <lastUpdated>1.6E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>14</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>5</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>a79183a8-8f71-46a5-9951-72e23a99f766</uid>
-    <lastUpdated>1.7E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>15</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>6</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>73bef425-b4cd-4624-92a5-b537fff775fc</uid>
-    <lastUpdated>1.8E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>16</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>7</xCoordinate>
-    <yCoordinate>4</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>2829bbe4-681f-4cba-8e4f-3fffafeeb022</uid>
-    <lastUpdated>1.9E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>17</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>2</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>0f672c41-b412-4524-bd16-bac16693373f</uid>
-    <lastUpdated>2E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>18</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>3</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>631829d4-a3f4-41a0-a341-bacdb6912fde</uid>
-    <lastUpdated>2.1E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>19</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>4</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>dc56315c-630d-416f-b5d4-07ce0e9fee48</uid>
-    <lastUpdated>2.2E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>20</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>5</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>6cf0094c-c28c-4a80-b233-ce1dfe576f45</uid>
-    <lastUpdated>2.3E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>21</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>6</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>fcccd448-3522-40ff-8f7c-ea107a777bf1</uid>
-    <lastUpdated>2.4E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>22</id>
-  </AntStateChange>
-  <AntStateChange>
-    <xCoordinate>7</xCoordinate>
-    <yCoordinate>5</yCoordinate>
-    <isXDirection>true</isXDirection>
-    <xSpeed>0</xSpeed>
-    <ySpeed>0</ySpeed>
-    <charge>7200</charge>
-    <isLoaded>false</isLoaded>
-    <uid>367af28a-c843-43a3-899a-79ce13eccb4f</uid>
-    <lastUpdated>2.5E-06</lastUpdated>
-    <state>Wait</state>
-    <command>Create AntBot</command>
-    <id>23</id>
   </AntStateChange>
   <AntStateChange>
     <xCoordinate>2</xCoordinate>
@@ -344,10 +36,10 @@
     <ySpeed>0</ySpeed>
     <charge>0</charge>
     <isLoaded>false</isLoaded>
-    <uid>a3fcbc6d-2a0a-49e2-84fd-05be4273babd</uid>
+    <uid>67859</uid>
     <lastUpdated>1440000.0000001</lastUpdated>
     <state>UnCharged</state>
     <command>UnCharging</command>
-    <id>24</id>
+    <id>2</id>
   </AntStateChange>
 </ArrayOfAntStateChange>

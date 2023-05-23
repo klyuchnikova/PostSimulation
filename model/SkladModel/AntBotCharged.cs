@@ -34,6 +34,7 @@ namespace SkladModel
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
             antBot.isFree = (antBot.commandList.commands.Count == 0);
             --antBot.sklad.skladTargeted[antBot.yCord][antBot.xCord];
+            antBot.recalculateHorizon = antBot.lastUpdated;
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Charged");

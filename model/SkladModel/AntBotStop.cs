@@ -5,11 +5,8 @@ using System.Linq;
 
 namespace SkladModel
 {
-
-
     public class AntBotStop : AntBotAbstractEvent
     {
-
         public AntBotStop() { }
         bool isLongStop = true;
 
@@ -35,8 +32,6 @@ namespace SkladModel
             else
                 return getStartTime() + TimeSpan.FromSeconds(antBot.sklad.skladConfig.unitStopTime);
         }
-       
-
         public override void ReserveRoom()
         {
             int x = antBot.xCord;

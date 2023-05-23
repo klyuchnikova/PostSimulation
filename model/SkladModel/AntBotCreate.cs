@@ -52,8 +52,8 @@ namespace SkladModel
             antBot.isLoaded = false;
             antBot.isFree = true;
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
-            antBot.targetXCoordinate = x;
-            antBot.targetYCoordinate = y;
+            antBot.targetXCoordinate = -1;
+            antBot.targetYCoordinate = -1;
             antBot.state = AntBotState.Wait;
             antBot.lastUpdated = timeSpan;
             antBot.waitTime = TimeSpan.MaxValue;
