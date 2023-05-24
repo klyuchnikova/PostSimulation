@@ -62,7 +62,6 @@ namespace SkladModel
                     Console.WriteLine($"antBot {antBot.uid} Rotate {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
                 }
             }
-
         }
     }
 }

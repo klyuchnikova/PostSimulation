@@ -66,8 +66,6 @@ namespace SkladModel
             antBot.objects = objects;
             antBot.commandList = new CommandList(antBot);
             objects.Add(antBot);
-            if (isDebug)
-                Console.WriteLine($"antBot {antBot.uid} created {antBot.lastUpdated} coordinate {antBot.xCoordinate}, {antBot.yCoordinate}");
         }
     }
 

@@ -48,7 +48,7 @@ namespace SkladModel
             antBot.charge -= antBot.sklad.skladConfig.unitStopEnergy;
             antBot.state = AntBotState.Wait;
             antBot.RemoveFirstCommand(timeSpan);
-            antBot.isFree = (antBot.commandList.commands.Count == 0);
+            antBot.isFree = true;
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Stop");

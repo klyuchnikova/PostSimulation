@@ -81,6 +81,7 @@ namespace SkladModel
             antBot.RemoveFirstCommand(timeSpan);
             antBot.state = AntBotState.Move;
             antBot.waitTime = getEndTime();
+            antBot.isFree = false;
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, $"Move");

@@ -52,7 +52,7 @@ namespace SkladModel
             AssignTarget(antBot);
             antBot.RemoveFirstCommand(timeSpan);
             antBot.waitTime = getEndTime();
-            antBot.isFree = (antBot.commandList.commands.Count == 0);
+            antBot.isFree = false;
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Load");

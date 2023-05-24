@@ -240,9 +240,9 @@ namespace SkladModel
             if (xSpeed > 0)
                 return 1;
             if (ySpeed < 0)
-                return 2;
-            if (ySpeed > 0)
                 return 4;
+            if (ySpeed > 0)
+                return 2;
             if (isXDirection)
                 return 5;
             return 6;

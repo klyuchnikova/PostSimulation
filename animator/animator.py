@@ -58,11 +58,12 @@ class LogIterator:
             if new_command.find("command").text != "EndTask":
                 continue
             break
+        print(new_command.find("xCoordinate").text, new_command.find("yCoordinate").text, new_command.find("lastUpdated").text)
         return RobotState(round(float(new_command.find("xCoordinate").text) + 0.1), 
                           round(float(new_command.find("yCoordinate").text) + 0.1), 
                           new_command.find("uid").text,
                           new_command.find("isXDirection").text == "true", 
-                          strp_pt_time(new_command.find("lastUpdated").text),
+                          timedelta(seconds=float(new_command.find("lastUpdated").text)),
                           new_command.find("isLoaded").text == "true")
 
 def strp_pt_time(pt):
@@ -412,20 +413,21 @@ class Animator:
                 d = int(robot_position.direct)
                 
                 # example: (0, 0, 'rob_0', '5', '15', '1', 'True')
-                robot_id, x, y, d, has_package = writing[2:]
                 x, y, d = int(x), int(y), int(d)
-                has_package = (has_package == "True")
+                has_package = robot_position.is_loaded
                 x, y = x*self.map_controller.tile_with_borders_size[0], y*self.map_controller.tile_with_borders_size[1]
-                old_x, old_y, old_d = self.robots.get(robot_id, (x, y, d))
+                """
                 k = (mid_frame+1)/self.mid_frames
                 if old_d == 3 and d == 0:
                     d = 4
                 elif old_d == 0 and d == 3:
                     old_d = 4
-                self.draw_robot(robot_id, x*k + old_x*(1-k), y*k + old_y*(1-k), d*k + old_d*(1-k), has_package)
+                """
+                self.draw_robot(robot_id, x,y, d, has_package)                
+                #self.draw_robot(robot_id, x*k + old_x*(1-k), y*k + old_y*(1-k), d*k + old_d*(1-k), has_package)
             self.win.blit(self.map_controller.win, self.map_controller.shifts)
             self.draw_update()
-            self.clock.tick(3600/self.fps)
+            self.clock.tick(1000/self.fps)
         
     def show(self):
         while True:
@@ -531,12 +533,12 @@ class Animator:
         self.map_controller.mark(x, y)
     
 if __name__ == "__main__":
-    obs_config_path = "..\\log.xml"
+    obs_config_path = "..\\run_2\\log.xml"
     #doc = minidom.parse(obs_config_path).getElementsByTagName("SkladLogger")[0]
     anim = Animator(obs_config_path, 
                        5, True, 
                        show_tile_direction = True)  
-    anim.display()
+    anim.save_picture("..\\run_2_map.png")
     """
     print(f"elements in sklad: {doc.elements}")
     print(f"elements in sklad: {len(doc.elements)}")

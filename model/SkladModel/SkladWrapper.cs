@@ -86,13 +86,8 @@ namespace SkladModel
         {
             // returns all bots which need command calculation
 
-            foreach (var ant in GetAllAnts())
-            {
-                //Console.WriteLine($"{ant.xCord} {ant.yCord} : free={ant.isFree}, rec={String.Format("{0,2:0.0}", ant.time_before_recount.TotalSeconds)} ? ts={String.Format("{0,2:0.0}", timeSpan.TotalSeconds)} = {(ant.time_before_recount <= timeSpan)}");
-            }
-
             return GetAllAnts().FindAll(ant =>
-                ant.isFree || (ant.time_before_recount <= timeSpan)
+                ant.isFree && (ant.time_before_recount <= timeSpan)
             );
         }
 
@@ -228,6 +223,7 @@ namespace SkladModel
 
                 if (!ant.doesHaveReservation())
                 {
+                    ant.sklad.squaresIsBusy.PrintReserves(ant.sklad.skladLayout);
                     throw new CheckStateException();
                 }
             }

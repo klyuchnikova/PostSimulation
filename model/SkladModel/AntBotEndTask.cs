@@ -33,7 +33,7 @@ namespace SkladModel
         {
             antBot.state = AntBotState.Wait;
             antBot.waitTime = TimeSpan.Zero;
-            antBot.isFree = (antBot.commandList.commands.Count == 0);
+            antBot.isFree = true;
 
             while (antBot.reserved.Count != 0)
             {
