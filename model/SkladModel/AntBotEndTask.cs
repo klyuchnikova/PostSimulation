@@ -48,10 +48,6 @@ namespace SkladModel
                 }
             }
 
-            if (!antBot.hasNoTarget()) {
-                --antBot.sklad.skladTargeted[antBot.targetYCoordinate][antBot.targetXCoordinate];
-            }
-
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "EndTask");

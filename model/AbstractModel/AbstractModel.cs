@@ -8,8 +8,7 @@ namespace AbstractModel
 {
     public abstract class AbstractObject
     {
-        static Random rnd = new Random();
-        public string uid = rnd.Next(1, 100000).ToString();
+        public string uid = Guid.NewGuid().ToString();
         [XmlElement(Type = typeof(TimeSpan))]
         public TimeSpan lastUpdated;
         public abstract (TimeSpan, AbstractEvent) getNearestEvent(List<AbstractObject> objects);

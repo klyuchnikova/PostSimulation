@@ -49,7 +49,12 @@ namespace SkladModel
             antBot.charge -= antBot.sklad.skladConfig.unitLoadEnergy;
             antBot.state = AntBotState.Loading;
             antBot.isLoaded = true;
+
+            // forgetting previos target
+            if (!antBot.isClone)
+                --antBot.sklad.skladTargeted[antBot.yCord][antBot.xCord];
             AssignTarget(antBot);
+            
             antBot.RemoveFirstCommand(timeSpan);
             antBot.waitTime = getEndTime();
             antBot.isFree = false;

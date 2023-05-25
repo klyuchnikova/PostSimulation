@@ -108,9 +108,7 @@ namespace ControlModel
         {
             skladWrapper.GetAvailableAnts(skladWrapper.updatedTime).ForEach(ant =>
             {
-
                 ant.time_before_recount = skladWrapper.updatedTime + WINDOW_RECALCULATE;
-
                 if (ant.isLoaded)
                 {
                     RunToDrop(ant);
@@ -212,6 +210,12 @@ namespace ControlModel
                 new AntBotCharge(antBot),
                 new AntBotWait(antBot, TimeSpan.Zero)};
 
+            if (!antBot.hasNoTarget())
+            {
+                --antBot.sklad.skladTargeted[antBot.targetYCoordinate][antBot.targetXCoordinate];
+                antBot.targetXCoordinate = -1;
+            }
+
             // finding the closest source to assighn to
             var actions_on_load = new List<AntBotAbstractEvent>() { new AntBotLoad(antBot) };
 
@@ -257,6 +261,11 @@ namespace ControlModel
             // finding the closest source to assighn to
 
             var actions_on_load = new List<AntBotAbstractEvent>() {new AntBotLoad(antBot)};
+            if (!antBot.hasNoTarget())
+            {
+                --antBot.sklad.skladTargeted[antBot.targetYCoordinate][antBot.targetXCoordinate];
+                antBot.targetXCoordinate = -1;
+            }
 
             var targets = new List<((int x, int y, bool isXDirection) source, double estimated_time)>();
             double count_rob_coef = 5;
@@ -296,7 +305,7 @@ namespace ControlModel
             // basically it will ony be called in case we're close to the target but it's occupied too firmly
             TimeSpan cooperate_until = skladWrapper.updatedTime + WINDOW_COOPERATE;
             var path = WHCAStarBuildEscapePath(antBot.commandList.antState, cooperate_until, IsOnTarget(antBot));
-            if (path != null && (path.lastTime - antBot.commandList.lastTime).TotalSeconds >= WINDOW_COOPERATE.TotalSeconds/2)
+            if (path != null) //&& (path.lastTime - antBot.commandList.lastTime).TotalSeconds >= WINDOW_COOPERATE.TotalSeconds/2)
             {
                 addPath(antBot, path);
             } else {
@@ -436,7 +445,7 @@ namespace ControlModel
                 throw new Exception();
             }
 
-            Console.WriteLine($"WHCAStarBuildPath ({antBot.xCord}, {antBot.yCord}) -> ({goal.x}, {goal.y})");
+            // Console.WriteLine($"WHCAStarBuildPath ({antBot.xCord}, {antBot.yCord}) -> ({goal.x}, {goal.y})");
             TimeSpan cooperate_until = skladWrapper.updatedTime + WINDOW_COOPERATE;
             CommandList best_commands = WHCAStarBuildPathToTarget(antBot, goal, actions_on_goal, cooperate_until);
             return (best_commands != null, best_commands);
@@ -569,11 +578,11 @@ namespace ControlModel
                 CountPriority = (CommandList cList) =>
                 {
                     TimeSpan priority = TimeSpan.Zero;
-                    foreach (var source_map in optimalPathEstimation)
-                    {
-                        priority += source_map.Value[cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
+                    //foreach (var source_map in optimalPathEstimation)
+                    //{
+                    //    priority += source_map.Value[cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
 
-                    }
+                    //}
                     priority = TimeSpan.FromSeconds(priority.TotalSeconds / optimalPathEstimation.Count) +
                     optimalPathEstimation[antBot.GetCurrentPoint()][cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
                     return priority;
@@ -642,7 +651,7 @@ namespace ControlModel
                     }
                 }
             }
-            PrintSklad();
+            //PrintSklad();
             return best_vertice.cList;
         }
 

@@ -33,7 +33,8 @@ namespace SkladModel
             antBot.state = AntBotState.Wait;
             antBot.charge = antBot.sklad.skladConfig.unitChargeValue;
             antBot.isFree = true;
-            --antBot.sklad.skladTargeted[antBot.yCord][antBot.xCord];
+            if (!antBot.isClone)
+                --antBot.sklad.skladTargeted[antBot.yCord][antBot.xCord];
             antBot.time_before_recount = antBot.lastUpdated;
             if (antBot.skladLogger != null)
             {
