@@ -8,7 +8,9 @@ namespace SkladModel
     {
         TimeSpan time;
         public override AntBotAbstractEvent Clone() => new AntBotWait(antBot, time);
-        public AntBotWait(AntBot antBot, TimeSpan time) {
+
+        public AntBotWait(AntBot antBot, TimeSpan time)
+        {
             this.antBot = antBot;
             this.time = time;
         }
@@ -19,7 +21,9 @@ namespace SkladModel
         }
 
         public override TimeSpan getStartTime() => antBot.lastUpdated;
-        public override TimeSpan getEndTime() => antBot.lastUpdated + time;
+        public override TimeSpan getEndTime() {
+            return antBot.lastUpdated + time;
+        }
 
         public override void ReserveRoom()
         {
@@ -28,8 +32,8 @@ namespace SkladModel
 
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
-            antBot.state = AntBotState.Work;
-            antBot.waitTime = timeSpan + time;
+            antBot.state = AntBotState.Wait;
+            antBot.waitTime = getEndTime(); //--!
             antBot.RemoveFirstCommand(timeSpan);
             antBot.isFree = true;
             if (antBot.skladLogger != null)

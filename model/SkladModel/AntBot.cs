@@ -222,6 +222,11 @@ namespace SkladModel
             return 0;
         }
 
+        public int DistanceFrom((int x, int y, bool isXDirection) point)
+        {
+            return (Math.Abs(point.x - xCord) + Math.Abs(point.y - yCord));
+        }
+
         public double EstimateTimeToMoveFunc((int x, int y, bool isXDirection) point_1, (int x, int y, bool isXDirection) point_2)
         {
             return (Math.Abs(point_1.x - point_2.x) + Math.Abs(point_1.y - point_2.y)) * (1 / sklad.skladConfig.unitSpeed) + 

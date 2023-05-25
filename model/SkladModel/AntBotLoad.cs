@@ -53,6 +53,7 @@ namespace SkladModel
             antBot.RemoveFirstCommand(timeSpan);
             antBot.waitTime = getEndTime();
             antBot.isFree = false;
+            antBot.time_before_recount = TimeSpan.Zero;
             if (antBot.skladLogger != null)
             {
                 antBot.skladLogger.AddLog(antBot, "Load");
