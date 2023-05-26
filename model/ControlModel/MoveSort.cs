@@ -622,10 +622,6 @@ namespace ControlModel
                 CommandList current = max.cList;
                 sorted_cLists.Remove(max);
 
-                if (current.lastTime > cooperate_until)
-                {
-                    continue;
-                }
                 if (current.antState.DistanceFrom(antBot.GetCurrentPoint()) >= minDistanceToStand)
                 {
                     CommandList current_clone = current.Clone();
@@ -633,6 +629,11 @@ namespace ControlModel
                     {
                         return current_clone;
                     }
+                }
+
+                if (current.lastTime > cooperate_until)
+                {
+                    continue;
                 }
 
                 foreach (var commandList in GetPossibleCommands(current))
@@ -651,8 +652,12 @@ namespace ControlModel
                     }
                 }
             }
-            //PrintSklad();
-            return best_vertice.cList;
+            
+            if (best_vertice.cList != null && best_vertice.cList.antState.DistanceFrom(antBot.GetCurrentPoint()) >= minDistanceToStand)
+            {
+                return best_vertice.cList;
+            }
+            return null;
         }
 
         public FibonacciHeap<double, CommandList> graph;

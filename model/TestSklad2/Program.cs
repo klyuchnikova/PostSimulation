@@ -29,7 +29,7 @@ namespace TestSklad2
             SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\run_2\wms-config.xml", false);
             skladWrapper.AddLogger();
             skladWrapper.AddSklad(timeEnergyMetric);
-            skladWrapper.AddAnts(3); //--!
+            skladWrapper.AddAnts(5); //--!
             new MoveSort(skladWrapper).Run(TimeSpan.FromMinutes(5));
             skladWrapper.SaveLog(@"..\..\..\..\..\run_2\log.xml");
             SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
