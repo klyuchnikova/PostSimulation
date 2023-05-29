@@ -26,14 +26,14 @@ namespace TestSklad2
 
         static void Main(string[] args)
         {            
-            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\run_2\wms-config.xml", false);
+            SkladWrapper skladWrapper = new SkladWrapper(@"..\..\..\..\..\run_1\wms-config.xml", false);
             skladWrapper.AddLogger();
             skladWrapper.AddSklad(timeEnergyMetric);
-            skladWrapper.AddAnts(5); //--!
+            skladWrapper.AddAnts(2); //--!
             new MoveSort(skladWrapper).Run(TimeSpan.FromMinutes(5));
-            skladWrapper.SaveLog(@"..\..\..\..\..\run_2\log.xml");
+            skladWrapper.SaveLog(@"..\..\..\..\..\run_1\log.xml");
             SkladLogger logger = (SkladLogger)skladWrapper.objects.First(x => x is SkladLogger);
-            File.WriteAllBytes(@"..\..\..\..\..\run_2\log_unity.xml", SkladWrapper.SerializeXML(logger.logs.ToArray()));
+            File.WriteAllBytes(@"..\..\..\..\..\run_1\log_unity.xml", SkladWrapper.SerializeXML(logger.logs.ToArray()));
         }
     }
 }

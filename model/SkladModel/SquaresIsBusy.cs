@@ -106,7 +106,6 @@ namespace SkladModel
 
         public void UnReserveRoom(int x, int y, TimeSpan time)
         {
-            // Console.WriteLine($"Unreserve: ({x},{y}) {time}"); //--!
             squareIsBusy[x][y].Remove(time);
         }
         public void PrintRoom(int x, int y)

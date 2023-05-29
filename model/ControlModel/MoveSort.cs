@@ -51,7 +51,7 @@ namespace ControlModel
         SkladWrapper skladWrapper;
         TimeSpan maxTime = TimeSpan.MaxValue;
         TimeSpan WINDOW_COOPERATE = TimeSpan.FromSeconds(15);
-        TimeSpan WINDOW_RECALCULATE = TimeSpan.FromSeconds(8);
+        TimeSpan WINDOW_RECALCULATE = TimeSpan.FromSeconds(6);
         double optimalChargeValue;
 
         public MoveSort(SkladWrapper skladWrapper) {
@@ -75,12 +75,16 @@ namespace ControlModel
             skladHeight = sklad.skladLayout.Count; 
             skladWidth = sklad.skladLayout[0].Count;
             InitoptimalPathEstimation();
+
+            // uncommet if you need to check estimation map
             // PrintEstimationMap();
-            optimalChargeValue = sklad.skladConfig.unitChargeValue * 0.8;
+            optimalChargeValue = sklad.skladConfig.unitChargeValue * 0.5;
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+            // uncomment if you need to see events printed in the console
             // skladWrapper.GetAllAnts().ForEach(ant => ant.isDebug = true);
 
+            // main cycle of the simulation
             do
             {
                 if (timeProgress < skladWrapper.updatedTime)
@@ -94,7 +98,7 @@ namespace ControlModel
                 {
                     break;
                 }
-                else if (skladWrapper.GetSklad().deliveryCount >= 5000)
+                else if (skladWrapper.GetSklad().deliveryCount >= 1000)
                 {
                     Console.WriteLine($"Delivery time: {skladWrapper.updatedTime.TotalSeconds}");
                     break;
@@ -116,6 +120,7 @@ namespace ControlModel
                 else if (ant.hasNoTarget() &&
                          ant.charge < optimalChargeValue)
                 {
+                    Console.WriteLine("Robot went charging!");   
                     RunToChargePoint(ant);
                 }
                 else { RunToLoadPoint(ant); }
@@ -126,6 +131,7 @@ namespace ControlModel
                 // 3) if it failed empties commands anyway
                 if (ant.commandList.commands.Count == 0) {
                     TryRunToFreePoint(ant);
+                    ant.PrintCommands();
                 }
                 
                 if (ant.commandList.commands.Count == 0)
@@ -169,9 +175,9 @@ namespace ControlModel
 
         private void FreeCommandsWithExtendedOccupation(AntBot antbot)
         {
-            // ant Bot is ONE HUNDRED PERCENT on the edge of starting a new task
-            // the only chance that we might not see coming is when the next command is going to happen right now but we erase and something not very cool happends
-            // such commands are AntBotStop
+            // ant Bot is guaranteed to be on a verge of starting a new task
+            // the only chance that we might not see coming is when the next command is going to happen right now but we erase and something breaks
+            // such command is AntBotStop - if we move we ansolutely must run the event till the end or the state won't update correctly
             antbot.CleanReservation();
             if (antbot.commandList.commands.Count != 0)
             {
@@ -202,10 +208,9 @@ namespace ControlModel
 
         private void RunToChargePoint(AntBot antBot)
         {
-            // uloaded, maybe is moving towards a queue already
-            // still, we'll simply reassighn target, this doesn't matter much
-            // right now the algorythm is not right since in case someone is already moving or standing on a source
-            // we will get stuck. So we'll need to change this part...
+            // AntBot is uloaded, maybe is moving towards a queue already
+            // still, we'll simply reassighn target
+            
             var actions_on_charge = new List<AntBotAbstractEvent>() {
                 new AntBotCharge(antBot),
                 new AntBotWait(antBot, TimeSpan.Zero)};
@@ -254,11 +259,8 @@ namespace ControlModel
             // run to closest source
             // after receiving a package empties the command List and
             // resets reservation immidiately cause we don't want to stand although since we're free
-            // I suppose we could still reconsider.
             // Also sets a destination (drop)
-            // (all of it happens in AntBotUnload event)
-
-            // finding the closest source to assighn to
+            // (all of it happens in AntBotLoad event)
 
             var actions_on_load = new List<AntBotAbstractEvent>() {new AntBotLoad(antBot)};
             if (!antBot.hasNoTarget())
@@ -330,11 +332,6 @@ namespace ControlModel
                 if (for_rotate.AddCommand(new AntBotRotate(commandList.antState), false) &&
                     for_rotate.AddCommand(new AntBotWait(commandList.antState, TimeSpan.Zero), false))
                 {
-                    if (for_rotate.antState.xSpeed != 0 || for_rotate.antState.ySpeed != 0 || for_rotate.commands.Count == 1)
-                    {
-                        throw new Exception();
-                        //--!
-                    }
                     yield return for_rotate;
                 }
 
@@ -369,11 +366,6 @@ namespace ControlModel
                         near != TimeSpan.MaxValue &&
                         commands_copy.AddCommand(new AntBotWait(antBot, near - commands_copy.lastTime), false))
                     {
-                        if (commands_copy.antState.xSpeed != 0 || commands_copy.antState.ySpeed != 0)
-                        {
-                            throw new Exception();
-                            //--!
-                        }
                         yield return commands_copy;
                     }
                     continue;
@@ -390,22 +382,11 @@ namespace ControlModel
                             commands_copy.AddCommand(new AntBotMove(antBot, move_on_dist), false) &&
                             commands_copy.AddCommand(new AntBotStop(antBot, false), false))
                         {
-                            if (commands_copy.antState.xSpeed != 0 || commands_copy.antState.ySpeed != 0 || commands_copy.commands.Count - commandList.commands.Count != 3
-                                || commands_copy.commands.Count == 1)
-                            {
-                                throw new Exception();
-                                //--!
-                            }
                             yield return commands_copy;
                             var for_rotate = commands_copy.Clone();
                             if (for_rotate.AddCommand(new AntBotRotate(antBot), false) &&
                                 for_rotate.AddCommand(new AntBotWait(antBot, TimeSpan.Zero), false))
                             {
-                                if (for_rotate.antState.xSpeed != 0 || for_rotate.antState.ySpeed != 0)
-                                {
-                                    throw new Exception();
-                                    //--!
-                                }
                                 yield return for_rotate;
                             }
                         }
@@ -477,14 +458,12 @@ namespace ControlModel
             CommandList best_unreachable = null;
             double best_unreachable_priority = double.MaxValue;
 
-            // antBot.sklad.squaresIsBusy.PrintReserves(sklad.skladLayout);
             while (sorted_cLists.Count > 0)
             {
                 var min = sorted_cLists.Min;
                 CommandList current = sorted_cLists.Min.cList;
                 sorted_cLists.Remove(min);
 
-                // Console.WriteLine(String.Format("{0:0} {1:0} {2,1} {3:0.00}", current.antState.xCord, current.antState.yCord, current.antState.isXDirection, current.lastTime.TotalSeconds));
                 if (current.antState.xCord == goal.x && current.antState.yCord == goal.y && current.antState.isXDirection == goal.isXDirection)
                 {
                     bool can_go_by_this_path = true;
@@ -547,15 +526,7 @@ namespace ControlModel
                         }
                     }
                 }
-
-                // Console.Write(String.Format("Number neighbours investigated {0}\n", number_commands));
-                // PrintGraphState(cost_so_far);
-                // foreach (var el in sorted_cLists) {
-                //    Console.Write(String.Format("{0:0.00} ", el.priority));
-                // }
-                // Console.WriteLine();
             }
-            // PrintGraphState(cost_so_far);
             return best_unreachable;
         }
         private CommandList WHCAStarBuildEscapePath(AntBot antBot, TimeSpan cooperate_until, bool is_on_target = true)
@@ -578,16 +549,15 @@ namespace ControlModel
                 CountPriority = (CommandList cList) =>
                 {
                     TimeSpan priority = TimeSpan.Zero;
-                    //foreach (var source_map in optimalPathEstimation)
-                    //{
-                    //    priority += source_map.Value[cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
-
-                    //}
+                    foreach (var source_map in optimalPathEstimation)
+                    {
+                        priority += source_map.Value[cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
+                    }
                     priority = TimeSpan.FromSeconds(priority.TotalSeconds / optimalPathEstimation.Count) +
                     optimalPathEstimation[antBot.GetCurrentPoint()][cList.antState.yCord, cList.antState.xCord, Convert.ToInt32(cList.antState.isXDirection)];
                     return priority;
                 };
-                minDistanceToStand = 3;
+                minDistanceToStand = 5;
             } else
             {
                 CountPriority = (CommandList cList) =>
@@ -645,10 +615,6 @@ namespace ControlModel
                     {
                         cost_so_far[finish_point] = priority_;
                         sorted_cLists.Add((commandList, priority_));
-                        if (best_vertice.priority < priority_)
-                        {
-                            best_vertice = (commandList, priority_);
-                        }
                     }
                 }
             }

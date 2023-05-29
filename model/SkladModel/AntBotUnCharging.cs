@@ -19,7 +19,6 @@ namespace SkladModel
             antBot.ySpeed = 0;
             antBot.state = AntBotState.UnCharged;
             antBot.waitTime = TimeSpan.MaxValue;
-            antBot.isFree = true; // --!
             antBot.commandList = new CommandList(antBot);
             antBot.CleanReservation();
             //antBot.ReserveRoom(antBot.lastUpdated, TimeSpan.MaxValue);

@@ -33,7 +33,7 @@ namespace SkladModel
         public override void runEvent(List<AbstractObject> objects, TimeSpan timeSpan)
         {
             antBot.state = AntBotState.Wait;
-            antBot.waitTime = getEndTime(); //--!
+            antBot.waitTime = getEndTime();
             antBot.RemoveFirstCommand(timeSpan);
             antBot.isFree = true;
             if (antBot.skladLogger != null)

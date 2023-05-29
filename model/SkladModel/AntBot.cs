@@ -106,14 +106,13 @@ namespace SkladModel
             {
                 if (!abstractEvent.CheckReservation())
                 {
-                    abstractEvent.CheckReservation();
+                    antBot.sklad.squaresIsBusy.PrintReserves(antBot.sklad.skladLayout);
                     throw new AntBotNotPosibleMovement();
                 }
                 abstractEvent.ReserveRoom();
             }
             else
             {
-                //--! does it mean that event without reservation breaks
                 if (!abstractEvent.CheckReservation())
                 {
                     return false;
@@ -338,7 +337,6 @@ namespace SkladModel
                 Console.WriteLine("Robot on " + xCoordinate.ToString() + ", " + yCoordinate.ToString() + " got uncharged");
                 throw new InvalidOperationException("System entered a forbidden state");
             }
-            // --! let's exit with exception here
             lastUpdated = timeSpan;
         }
 
